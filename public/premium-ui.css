@@ -120,4 +120,7 @@ aside{display:flex!important;position:sticky;top:0;height:100vh;z-index:35}
 .quote-total-box{display:flex;justify-content:flex-end;gap:12px;margin:8px 0 16px}
 .quote-total-box span{display:grid;gap:4px;min-width:150px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase}
 .quote-total-box b{color:#172b4d;font-size:16px}
+.quote-item-actions{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 16px}
+.quote-item-actions .add-line{margin:0}
+.quote-item-actions .secondary{border-color:#cbd5e1!important;background:#f8fafc!important;color:#334155!important;box-shadow:none!important}
 @media(max-width:1100px){.quote-item-row{grid-template-columns:repeat(2,minmax(0,1fr))}.quote-item-row button{grid-column:1/-1}}
