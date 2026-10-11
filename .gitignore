@@ -1,0 +1,14 @@
+node_modules/
+
+dados/*.sqlite
+dados/*.sqlite-*
+dados/backups/
+dados/imagens/
+
+output/
+tmp/
+
+instalador/*.exe
+
+*.log
+*.local
