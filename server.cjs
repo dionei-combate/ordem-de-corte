@@ -20,7 +20,7 @@ const JSON_LIMIT = 15 * 1024 * 1024;
 const ALLOWED_ENTITIES = new Set(['clients', 'products', 'models', 'details', 'colors', 'printTypes', 'materials', 'workshops']);
 const LICENSE_STATUSES = new Set(['Ativa', 'Em avaliação', 'Suspensa', 'Expirada']);
 const ALLOWED_STATUSES = new Set(['Aberta', 'Impressa']);
-const QUOTE_STATUSES = new Set(['Em elaboração', 'Em análise', 'Aprovado', 'Rejeitado', 'Cancelado', 'Expirado', 'Faturado']);
+const QUOTE_STATUSES = new Set(['Em elaboração', 'Em análise', 'Aprovado', 'Rejeitado', 'Cancelado', 'Expirado', 'Em produção']);
 const MIME_EXTENSIONS = new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]);
 
 fs.mkdirSync(UPLOADS, { recursive: true });
@@ -85,6 +85,20 @@ function parseJson(value, context) {
     throw new Error(`Registro inválido no banco (${context}): ${error.message}`);
   }
 }
+
+function migrateQuoteStatuses() {
+  const rows = db.prepare("SELECT id, data_json FROM quotes WHERE status = 'Faturado'").all();
+  if (!rows.length) return;
+  const timestamp = now();
+  const update = db.prepare('UPDATE quotes SET status=?, data_json=?, updated_at=? WHERE id=?');
+  for (const row of rows) {
+    const data = parseJson(row.data_json, `orçamento ${row.id}`);
+    data.status = 'Em produção';
+    update.run('Em produção', JSON.stringify(data), timestamp, row.id);
+  }
+}
+
+migrateQuoteStatuses();
 
 const DEFAULT_COMPANY_SETTINGS = {
   legalName: '', tradeName: '', activity: '', cnpj: '', stateRegistration: '', municipalRegistration: '', taxRegime: 'Simples Nacional',
@@ -475,7 +489,7 @@ async function api(req, res, url) {
             .run(data.id, number, data.status, JSON.stringify(data), timestamp, timestamp);
           return data;
         });
-        const updatedQuote = { ...quote, status: 'Faturado', convertedAt: timestamp, orderIds: orders.map(order => order.id), updatedAt: timestamp };
+        const updatedQuote = { ...quote, status: 'Em produção', convertedAt: timestamp, orderIds: orders.map(order => order.id), updatedAt: timestamp };
         db.prepare('UPDATE quotes SET status=?,data_json=?,updated_at=? WHERE id=?')
           .run(updatedQuote.status, JSON.stringify(updatedQuote), timestamp, id);
         return { quote: updatedQuote, orders };
