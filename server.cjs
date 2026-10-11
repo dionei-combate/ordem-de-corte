@@ -5,6 +5,8 @@ const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 const { generateOrderPdf } = require('./pdf-generator.cjs');
 const { generatePrintPage } = require('./print-page.cjs');
+const { generateQuotePdf } = require('./quote-pdf-generator.cjs');
+const { generateQuotePrint } = require('./quote-print.cjs');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
@@ -377,6 +379,21 @@ async function api(req, res, url) {
       const rows = db.prepare('SELECT id,data_json FROM quotes ORDER BY number DESC').all();
       return send(res, rows.map(row => normalizeQuote(row)));
     }
+    if (req.method === 'GET' && id && parts[3] === 'pdf') {
+      const row = db.prepare('SELECT number,data_json FROM quotes WHERE id=?').get(id);
+      if (!row) return send(res, { error: 'Orçamento não encontrado.' }, 404);
+      const quote = normalizeQuote({ id, data_json: row.data_json });
+      let pdf;
+      try {
+        pdf = await generateQuotePdf(quote);
+      } catch (error) {
+        console.error('Falha ao gerar PDF do orçamento:', error);
+        throw httpError(503, 'Não foi possível gerar o PDF do orçamento neste computador.');
+      }
+      const filename = `Orcamento-${String(row.number).padStart(3, '0')}.pdf`;
+      const disposition = url.searchParams.get('print') === '1' ? 'inline' : 'attachment';
+      return send(res, pdf, 200, 'application/pdf', { 'content-disposition': `${disposition}; filename="${filename}"` });
+    }
     if (req.method === 'POST' && !id) {
       const input = cleanQuote(await readBody(req));
       const create = () => transaction(() => {
@@ -451,6 +468,12 @@ const server = http.createServer(async (req, res) => {
       const row = db.prepare('SELECT data_json FROM cut_orders WHERE id=?').get(id);
       if (!row) return send(res, '<h1>Ordem não encontrada.</h1>', 404, 'text/html; charset=utf-8');
       return send(res, generatePrintPage(normalizeOrder({ id, data_json: row.data_json })), 200, 'text/html; charset=utf-8');
+    }
+    if (url.pathname.startsWith('/print/quotes/') && req.method === 'GET') {
+      const id = asString(decodeURIComponent(url.pathname.slice('/print/quotes/'.length)), 120);
+      const row = db.prepare('SELECT data_json FROM quotes WHERE id=?').get(id);
+      if (!row) return send(res, '<h1>Orçamento não encontrado.</h1>', 404, 'text/html; charset=utf-8');
+      return send(res, generateQuotePrint(normalizeQuote({ id, data_json: row.data_json })), 200, 'text/html; charset=utf-8');
     }
     const isUpload = url.pathname.startsWith('/uploads/');
     const root = isUpload ? UPLOADS : PUBLIC;
