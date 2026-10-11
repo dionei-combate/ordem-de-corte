@@ -19,8 +19,8 @@ const HOST = process.env.HOST || '127.0.0.1';
 const JSON_LIMIT = 15 * 1024 * 1024;
 const ALLOWED_ENTITIES = new Set(['clients', 'products', 'models', 'details', 'colors', 'printTypes', 'materials', 'workshops']);
 const LICENSE_STATUSES = new Set(['Ativa', 'Em avaliação', 'Suspensa', 'Expirada']);
-const ALLOWED_STATUSES = new Set(['Aberta', 'Impressa']);
-const QUOTE_STATUSES = new Set(['Em elaboração', 'Em análise', 'Aprovado', 'Rejeitado', 'Cancelado', 'Expirado', 'Em produção']);
+const ALLOWED_STATUSES = new Set(['Aberta', 'Impressa', 'Gerada OC']);
+const QUOTE_STATUSES = new Set(['Em elaboração', 'Em análise', 'Aprovado', 'Rejeitado', 'Cancelado', 'Expirado', 'Gerada OC']);
 const MIME_EXTENSIONS = new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]);
 
 fs.mkdirSync(UPLOADS, { recursive: true });
@@ -88,18 +88,33 @@ function parseJson(value, context) {
 }
 
 function migrateQuoteStatuses() {
-  const rows = db.prepare('SELECT id, data_json FROM quotes WHERE status = ?').all('Fatur' + 'ado');
+  const rows = db.prepare('SELECT id, data_json FROM quotes WHERE status IN (?, ?)').all('Fatur' + 'ado', 'Em produção');
   if (!rows.length) return;
   const timestamp = now();
   const update = db.prepare('UPDATE quotes SET status=?, data_json=?, updated_at=? WHERE id=?');
   for (const row of rows) {
     const data = parseJson(row.data_json, `orçamento ${row.id}`);
-    data.status = 'Em produção';
-    update.run('Em produção', JSON.stringify(data), timestamp, row.id);
+    data.status = 'Gerada OC';
+    update.run('Gerada OC', JSON.stringify(data), timestamp, row.id);
   }
 }
 
 migrateQuoteStatuses();
+
+function migrateGeneratedOrderStatuses() {
+  const rows = db.prepare("SELECT id, data_json FROM cut_orders WHERE json_extract(data_json, '$.sourceQuoteId') IS NOT NULL OR json_extract(data_json, '$.sourceQuoteNumber') IS NOT NULL").all();
+  if (!rows.length) return;
+  const timestamp = now();
+  const update = db.prepare('UPDATE cut_orders SET status=?, data_json=?, updated_at=? WHERE id=?');
+  for (const row of rows) {
+    const data = parseJson(row.data_json, `ordem ${row.id}`);
+    if (data.status === 'Gerada OC') continue;
+    data.status = 'Gerada OC';
+    update.run('Gerada OC', JSON.stringify(data), timestamp, row.id);
+  }
+}
+
+migrateGeneratedOrderStatuses();
 
 const DEFAULT_COMPANY_SETTINGS = {
   legalName: '', tradeName: '', activity: '', cnpj: '', stateRegistration: '', municipalRegistration: '', taxRegime: 'Simples Nacional',
@@ -224,7 +239,7 @@ function cleanQuote(data) {
 
 function normalizeOrder(data) {
   const order = parseJson(data.data_json ?? data, data.id ? `orders/${data.id}` : 'order');
-  order.status = order.status === 'Impressa' ? 'Impressa' : 'Aberta';
+  order.status = ALLOWED_STATUSES.has(order.status) ? order.status : 'Aberta';
   return order;
 }
 
@@ -261,6 +276,7 @@ function orderFromQuote(quote, item) {
     purchaseOrder: `Orçamento ${String(quote.number).padStart(3, '0')}`,
     sourceQuoteId: quote.id,
     sourceQuoteNumber: String(quote.number),
+    status: 'Gerada OC',
     issueDate: quote.issueDate,
     deliveryDate: quote.deliveryTime,
     notes: quote.notes,
@@ -493,7 +509,7 @@ async function api(req, res, url) {
             .run(data.id, number, data.status, JSON.stringify(data), timestamp, timestamp);
           return data;
         });
-        const updatedQuote = { ...quote, status: 'Em produção', convertedAt: timestamp, orderIds: orders.map(order => order.id), updatedAt: timestamp };
+          const updatedQuote = { ...quote, status: 'Gerada OC', convertedAt: timestamp, orderIds: orders.map(order => order.id), updatedAt: timestamp };
         db.prepare('UPDATE quotes SET status=?,data_json=?,updated_at=? WHERE id=?')
           .run(updatedQuote.status, JSON.stringify(updatedQuote), timestamp, id);
         return { quote: updatedQuote, orders };

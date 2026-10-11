@@ -92,8 +92,9 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
   const converted = await json(`/api/quotes/${quote.data.id}/convert`, { method: 'POST' });
   assert.equal(converted.response.status, 201);
   assert.equal(converted.data.orders.length, 1);
-  assert.equal(converted.data.quote.status, 'Em produção');
+  assert.equal(converted.data.quote.status, 'Gerada OC');
   assert.equal(converted.data.orders[0].purchaseOrder, 'Orçamento 001');
+  assert.equal(converted.data.orders[0].status, 'Gerada OC');
 
   const orderPayload = {
     clientId: client.data.id,
