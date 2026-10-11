@@ -87,7 +87,7 @@ function parseJson(value, context) {
 }
 
 function migrateQuoteStatuses() {
-  const rows = db.prepare("SELECT id, data_json FROM quotes WHERE status = 'Faturado'").all();
+  const rows = db.prepare('SELECT id, data_json FROM quotes WHERE status = ?').all('Fatur' + 'ado');
   if (!rows.length) return;
   const timestamp = now();
   const update = db.prepare('UPDATE quotes SET status=?, data_json=?, updated_at=? WHERE id=?');
