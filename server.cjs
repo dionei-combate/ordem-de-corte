@@ -262,6 +262,7 @@ function orderFromQuote(quote, item) {
     sourceQuoteId: quote.id,
     sourceQuoteNumber: String(quote.number),
     issueDate: quote.issueDate,
+    deliveryDate: quote.deliveryTime,
     notes: quote.notes,
     productSnapshot: product,
     lines: [{ quantity: item.quantity, size: item.size }]

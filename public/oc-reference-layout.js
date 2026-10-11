@@ -46,7 +46,7 @@
   };
 
   window.openOrder=function(id){
-    const o=state.orders.find(x=>x.id===id)||{};
+    const baseOrder=state.orders.find(x=>x.id===id)||{},sourceQuote=orderSourceQuote(baseOrder),o=!baseOrder.deliveryDate&&sourceQuote?.deliveryTime?{...baseOrder,deliveryDate:sourceQuote.deliveryTime}:baseOrder;
     modal(`<div class="modal-head"><div><small>ORDEM DE CORTE</small><h2>${id?'EDITAR ORDEM '+String(o.number).padStart(3,'0'):'NOVA ORDEM DE CORTE'}</h2></div><div class="order-toolbar"><button type="button" onclick="closeModal()">×</button></div></div><form id="order-form" class="order-form document-form"><div class="document-stage" id="document-stage">${documentHtml(o,true)}</div><div class="order-form-actions"><button type="button" onclick="closeModal()">CANCELAR</button><button type="button" class="primary" id="order-save">SALVAR ORDEM</button></div></form>`);
     document.querySelector('.modal').classList.add('order-modal');
     const form=document.querySelector('#order-form'),stage=document.querySelector('#document-stage');
