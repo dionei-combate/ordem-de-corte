@@ -4,7 +4,7 @@ const C = { navy: rgb(36 / 255, 56 / 255, 97 / 255), ink: rgb(32 / 255, 36 / 255
 const clean = value => String(value ?? '').trim() || '-';
 const money = value => `R$ ${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const date = value => { if (!value) return '-'; const parts = String(value).split('-'); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : clean(value); };
-const strip = value => clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const strip = value => clean(value);
 
 function fit(font, value, width, size = 8.5, min = 5.8) { let current = size; const text = strip(value).slice(0, 180); while (current > min && font.widthOfTextAtSize(text, current) > width) current -= .35; return { text, size: current }; }
 function wrap(font, value, width, size = 7.5, maxLines = 3) { const words = strip(value).split(/\s+/).filter(Boolean), lines = []; let line = ''; for (const word of words) { const next = line ? `${line} ${word}` : word; if (font.widthOfTextAtSize(next, size) <= width) line = next; else { if (line) lines.push(line); line = word; } } if (line) lines.push(line); return lines.slice(0, maxLines); }
