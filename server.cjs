@@ -512,7 +512,8 @@ const server = http.createServer(async (req, res) => {
       const row = db.prepare('SELECT data_json FROM cut_orders WHERE id=?').get(id);
       if (!row) return send(res, '<h1>Ordem não encontrada.</h1>', 404, 'text/html; charset=utf-8');
       const company = readCompanySettings();
-      const icon = String(company.iconUrl || '').startsWith('/uploads/') ? `<img class="oc-mark company-icon" style="object-fit:contain;background:#fff;padding:2mm" src="${escapeHtml(company.iconUrl)}" alt="">` : '<span class="oc-mark">OC</span>';
+      const companyImage = company.logoLightUrl || company.iconUrl;
+      const icon = String(companyImage || '').startsWith('/uploads/') ? `<img class="oc-mark company-icon" style="object-fit:contain;background:#fff;padding:2mm" src="${escapeHtml(companyImage)}" alt="">` : '<span class="oc-mark">OC</span>';
       const html = generatePrintPage(normalizeOrder({ id, data_json: row.data_json }), company).replace('<span class="oc-mark">OC</span>', icon);
       return send(res, html, 200, 'text/html; charset=utf-8');
     }
@@ -523,7 +524,8 @@ const server = http.createServer(async (req, res) => {
       const quote = normalizeQuote({ id, data_json: row.data_json });
       const company = readCompanySettings();
       const companyName = escapeHtml(company.tradeName || 'ORDEM DE CORTE');
-      const icon = String(company.iconUrl || '').startsWith('/uploads/') ? `<img class="mark company-icon" style="object-fit:contain;background:#fff;padding:2mm" src="${escapeHtml(company.iconUrl)}" alt="">` : '<span class="mark">OC</span>';
+      const companyImage = company.logoLightUrl || company.iconUrl;
+      const icon = String(companyImage || '').startsWith('/uploads/') ? `<img class="mark company-icon" style="object-fit:contain;background:#fff;padding:2mm" src="${escapeHtml(companyImage)}" alt="">` : '<span class="mark">OC</span>';
       const companyDetails = escapeHtml([company.legalName, company.cnpj, company.phone, company.email].filter(Boolean).join(' · '));
       const commercialDetails = escapeHtml([quote.paymentTerms && `Pagamento: ${quote.paymentTerms}`, quote.deliveryTime && `Entrega: ${quote.deliveryTime}`, quote.sellerName && `Vendedor: ${quote.sellerName}`].filter(Boolean).join(' · '));
       const html = generateQuotePrint(quote, company)

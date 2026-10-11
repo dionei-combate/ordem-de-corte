@@ -107,7 +107,7 @@ function safeImagePath(order, uploads) {
 }
 
 function safeCompanyIconPath(company, uploads) {
-  const icon = String(company.iconUrl || '');
+  const icon = String(company.logoLightUrl || company.iconUrl || '');
   if (!uploads || !icon.startsWith('/uploads/')) return null;
   const candidate = path.resolve(uploads, icon.slice('/uploads/'.length));
   const relation = path.relative(uploads, candidate);
