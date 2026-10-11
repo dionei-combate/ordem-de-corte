@@ -84,6 +84,7 @@ html,body{max-width:100%;overflow-x:hidden}#app{width:100%;max-width:100vw;grid-
 @media(max-width:560px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .order-origin-status{border:0!important;background:#eff6ff!important;color:#1d4ed8!important;border-radius:7px;padding:5px 8px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}.order-origin-status:hover{background:#dbeafe!important;color:#1e40af!important;text-decoration:underline}
 .quote-readonly-note{margin:0 0 16px;padding:11px 13px;border:1px solid #bfdbfe;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:11px;font-weight:700}
+.attention-status{color:#1d4ed8!important;font-size:10px!important;font-weight:900!important;text-transform:uppercase;letter-spacing:.35px}
 .dashboard-metrics{align-items:stretch}.dashboard-metric{display:grid;align-content:center;text-align:center}.dashboard-metric small{min-height:28px;display:flex;align-items:center;justify-content:center}.dashboard-grid,.dashboard-footer-grid{align-items:stretch}.dashboard-card{height:100%}.dashboard-card>header{min-height:72px}.status-bars{min-height:148px;align-content:center}.attention-list,.delivery-list,.recent-list{min-height:148px;align-content:center}.summary-card .summary-grid{align-items:center;justify-items:center}.summary-card .summary-grid span{width:100%}
 .dashboard-section{display:none!important}
 @media(max-width:760px){.dashboard-metrics{align-items:stretch}.dashboard-card>header{min-height:64px}.status-bars,.attention-list,.delivery-list,.recent-list{min-height:0}}
