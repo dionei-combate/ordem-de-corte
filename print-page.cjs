@@ -22,6 +22,10 @@ function textField(label, content) {
   return field(label, content, 'oc-text-field');
 }
 
+function joined(...parts) {
+  return parts.map(part => String(part ?? '').trim()).filter(Boolean).join(' / ');
+}
+
 function sizesHtml(lines) {
   return lines.map(line => `<div class="oc-size-item"><div class="oc-size-circle"><b>${value(line.size)}</b></div><div class="oc-fraction-line"></div><strong>${Math.max(0, Number.parseInt(line.quantity, 10) || 0)}</strong></div>`).join('');
 }
@@ -62,6 +66,7 @@ body{margin:0;background:#e8edf4;color:#20242b;font-family:Arial,sans-serif}
 .oc-product-row:first-child{border-top:0}
 .oc-product-main{grid-template-columns:1.7fr 1fr}
 .oc-product-primary{grid-template-columns:1.15fr .85fr .85fr 1.25fr}
+.oc-product-garment{grid-template-columns:repeat(3,1fr)}
 .oc-product-extra,.oc-product-secondary{grid-template-columns:1fr 1fr}
 .oc-field{min-width:0;display:flex;align-items:center;gap:2mm;min-height:10mm;padding:1.4mm 2.1mm;border:2px solid #59606c;background:#fff}
 .oc-product-row .oc-field{border:0;border-right:1px solid #9aa0a9}
@@ -99,8 +104,8 @@ body{margin:0;background:#e8edf4;color:#20242b;font-family:Arial,sans-serif}
 <section class="oc-client-row">${field('CLIENTE', order.clientName)}${field('FACÇÃO', order.workshopName)}</section>
 <section class="oc-production-box">
 <div class="oc-product-row oc-product-main">${field('PRODUTO', order.productName)}${field('MODELO', order.modelName)}</div>
-<div class="oc-product-row oc-product-primary">${field('TECIDO', order.materialName)}${field('COR', order.colorName)}${field('MANGA', order.sleeveName)}${field('TIPO DE IMPRESSÃO', order.printTypeName)}</div>
-<div class="oc-product-row oc-product-extra">${field('BOLSOS', order.pocketName)}<div></div></div>
+<div class="oc-product-row oc-product-primary">${field('TECIDO', order.materialName)}${field('COR', order.colorName)}${field('MANGA', joined(order.sleeveName, order.sleeveColorName))}${field('TIPO DE IMPRESSÃO', order.printTypeName)}</div>
+<div class="oc-product-row oc-product-garment">${field('GOLA', joined(order.collarName, order.collarColorName))}${field('PALA', joined(order.yokeName, order.yokeColorName))}${field('BOLSOS', order.pocketName)}</div>
 <div class="oc-product-row oc-product-secondary">${textField('DETALHE', order.detailName)}${textField('OBSERVAÇÕES', order.notes)}</div>
 <div class="oc-product-visual"><div class="oc-product-visual-label"><span>DESENHO DO PRODUTO</span><b>IMAGEM DA ORDEM</b></div><figure>${image ? `<img src="${escapeHtml(image)}" alt="Desenho do produto">` : '<div class="oc-product-image-empty">Sem imagem cadastrada</div>'}</figure></div>
 <div class="oc-sizes">${sizesHtml(lines)}</div>

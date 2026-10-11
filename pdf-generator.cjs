@@ -18,6 +18,10 @@ function stripAccents(value) {
   return clean(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+function joined(...parts) {
+  return parts.map(part => String(part ?? '').trim()).filter(Boolean).join(' / ');
+}
+
 function formatDate(input) {
   if (!input) return '-';
   const parts = String(input).split('-');
@@ -177,11 +181,13 @@ async function generateOrderPdf(order, uploads) {
   const w4 = contentWidth - w1 - w2 - w3;
   drawInlineField(page, fonts, 'Tecido', order.materialName, margin, 591, w1, 32);
   drawInlineField(page, fonts, 'Cor', order.colorName, margin + w1, 591, w2, 32);
-  drawInlineField(page, fonts, 'Manga', order.sleeveName, margin + w1 + w2, 591, w3, 32);
+  drawInlineField(page, fonts, 'Manga', joined(order.sleeveName, order.sleeveColorName), margin + w1 + w2, 591, w3, 32);
   drawInlineField(page, fonts, 'Tipo de impressao', order.printTypeName, margin + w1 + w2 + w3, 591, w4, 32, true);
 
-  drawInlineField(page, fonts, 'Bolsos', order.pocketName, margin, 559, contentWidth / 2, 32);
-  page.drawRectangle({ x: margin + contentWidth / 2, y: 559, width: contentWidth / 2, height: 32, borderColor: C.softLine, borderWidth: 0.8, color: C.white });
+  const garmentW = contentWidth / 3;
+  drawInlineField(page, fonts, 'Gola', joined(order.collarName, order.collarColorName), margin, 559, garmentW, 32);
+  drawInlineField(page, fonts, 'Pala', joined(order.yokeName, order.yokeColorName), margin + garmentW, 559, garmentW, 32);
+  drawInlineField(page, fonts, 'Bolsos', order.pocketName, margin + garmentW * 2, 559, contentWidth - garmentW * 2, 32, true);
 
   drawMultilineField(page, fonts, 'Detalhe', order.detailName, margin, 511, contentWidth / 2, 48);
   drawMultilineField(page, fonts, 'Observacoes', order.notes, margin + contentWidth / 2, 511, contentWidth / 2, 48, true);

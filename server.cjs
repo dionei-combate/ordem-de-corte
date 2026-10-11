@@ -91,7 +91,7 @@ function cleanEntity(data) {
 function cleanOrder(data) {
   if (!data || Array.isArray(data) || typeof data !== 'object') throw httpError(400, 'Ordem inválida.');
   const clean = {};
-  const stringFields = ['clientId', 'clientName', 'productId', 'productName', 'modelId', 'modelName', 'colorId', 'colorName', 'detailId', 'detailName', 'materialId', 'materialName', 'sleeveName', 'printTypeId', 'printTypeName', 'artName', 'pocketName', 'workshopId', 'workshopName', 'purchaseOrder', 'issueDate', 'deliveryDate', 'notes'];
+  const stringFields = ['clientId', 'clientName', 'productId', 'productName', 'modelId', 'modelName', 'colorId', 'colorName', 'detailId', 'detailName', 'materialId', 'materialName', 'sleeveName', 'sleeveColorId', 'sleeveColorName', 'collarName', 'collarColorId', 'collarColorName', 'yokeName', 'yokeColorId', 'yokeColorName', 'printTypeId', 'printTypeName', 'artName', 'pocketName', 'workshopId', 'workshopName', 'purchaseOrder', 'issueDate', 'deliveryDate', 'notes'];
   for (const field of stringFields) clean[field] = asString(data[field], field === 'notes' ? 5000 : 500);
   clean.status = ALLOWED_STATUSES.has(data.status) ? data.status : data.status === 'Impressa' ? 'Impressa' : 'Aberta';
   clean.lines = Array.isArray(data.lines) ? data.lines.slice(0, 200).map(line => ({

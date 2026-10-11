@@ -7,6 +7,8 @@
     ['models','Modelos','Novo modelo'],
     ['materials','Tecidos','Novo tecido'],
     ['sleeves','Mangas','Nova manga'],
+    ['collars','Golas','Nova gola'],
+    ['yokes','Palas','Nova pala'],
     ['pockets','Bolsos','Novo bolso'],
     ['sizes','Tamanhos','Novo tamanho']
   ];
