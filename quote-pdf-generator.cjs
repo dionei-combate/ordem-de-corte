@@ -50,7 +50,7 @@ async function generateQuotePdf(quote, company = {}, uploads) {
     field(page, fonts, 'Cliente', quote.clientName, margin, 646, width * .62, 29);
     field(page, fonts, 'CPF / CNPJ', quote.clientDocument, margin + width * .62 + 8, 646, width * .38 - 8, 29);
     const address = [quote.clientAddress, quote.clientNeighborhood, quote.clientCity, quote.clientState, quote.clientZip].filter(Boolean).join(' · ');
-    const commercial = [quote.paymentTerms && `Pagamento: ${quote.paymentTerms}`, quote.deliveryTime && `Entrega: ${quote.deliveryTime}`, quote.sellerName && `Vendedor: ${quote.sellerName}`].filter(Boolean).join(' · ');
+    const commercial = [quote.paymentTerms && `Pagamento: ${quote.paymentTerms}`, quote.deliveryTime && `Entrega: ${date(quote.deliveryTime)}`, quote.sellerName && `Vendedor: ${quote.sellerName}`].filter(Boolean).join(' · ');
     field(page, fonts, 'Contato / condicoes', [quote.clientPhone, quote.clientEmail, address, commercial].filter(Boolean).join(' · '), margin, 608, width, 29);
     page.drawText(pageIndex ? 'Itens do orcamento - continuação' : 'ITENS DO ORCAMENTO', { x: margin, y: 583, size: 8, font: bold, color: C.white });
     page.drawRectangle({ x: margin, y: 578, width, height: 18, color: C.navy });

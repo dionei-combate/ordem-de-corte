@@ -68,6 +68,7 @@ db.exec(`
 
 const now = () => new Date().toISOString();
 const asString = (value, max = 500) => String(value ?? '').trim().slice(0, max);
+const formatDate = value => { const text = asString(value, 30); if (!text) return ''; const parts = text.slice(0, 10).split('-'); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : text; };
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 
 function httpError(status, message) {
@@ -541,7 +542,7 @@ const server = http.createServer(async (req, res) => {
       const company = readCompanySettings();
       const companyImage = company.logoLightUrl || company.iconUrl;
       const icon = String(companyImage || '').startsWith('/uploads/') ? `<img class="mark company-icon" style="object-fit:contain;background:#fff;padding:2mm" src="${escapeHtml(companyImage)}" alt="">` : '<span class="mark">OC</span>';
-      const commercialDetails = escapeHtml([quote.paymentTerms && `Pagamento: ${quote.paymentTerms}`, quote.deliveryTime && `Entrega: ${quote.deliveryTime}`, quote.sellerName && `Vendedor: ${quote.sellerName}`].filter(Boolean).join(' · '));
+      const commercialDetails = escapeHtml([quote.paymentTerms && `Pagamento: ${quote.paymentTerms}`, quote.deliveryTime && `Entrega: ${formatDate(quote.deliveryTime)}`, quote.sellerName && `Vendedor: ${quote.sellerName}`].filter(Boolean).join(' · '));
       const html = generateQuotePrint(quote, company)
         .replace('<span class="mark">OC</span>', icon)
         .replace('<div class="section-title">Itens do orçamento</div>', `${commercialDetails ? `<section class="client-grid"><div class="cell"><small>Condições comerciais</small><b>${commercialDetails}</b></div></section>` : ''}<div class="section-title">Itens do orçamento</div>`);
