@@ -17,6 +17,7 @@ const HOST = process.env.HOST || '127.0.0.1';
 const JSON_LIMIT = 15 * 1024 * 1024;
 const ALLOWED_ENTITIES = new Set(['clients', 'products', 'models', 'details', 'colors', 'printTypes', 'materials', 'workshops']);
 const ALLOWED_STATUSES = new Set(['Aberta', 'Impressa']);
+const QUOTE_STATUSES = new Set(['Em elaboração', 'Em análise', 'Aprovado', 'Rejeitado', 'Cancelado', 'Expirado', 'Faturado']);
 const MIME_EXTENSIONS = new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]);
 
 fs.mkdirSync(UPLOADS, { recursive: true });
@@ -44,8 +45,17 @@ db.exec(`
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS quotes(
+    id TEXT PRIMARY KEY,
+    number INTEGER NOT NULL UNIQUE CHECK(number > 0),
+    status TEXT NOT NULL DEFAULT 'Em elaboração',
+    data_json TEXT NOT NULL CHECK(json_valid(data_json)),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
   CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(type);
   CREATE INDEX IF NOT EXISTS idx_orders_status ON cut_orders(status);
+  CREATE INDEX IF NOT EXISTS idx_quotes_status ON quotes(status);
 `);
 
 const now = () => new Date().toISOString();
@@ -72,6 +82,7 @@ function verifyDatabase() {
   if (result.quick_check !== 'ok') throw new Error(`Falha de integridade do SQLite: ${result.quick_check}`);
   for (const row of db.prepare('SELECT type,id,data_json FROM entities').all()) parseJson(row.data_json, `${row.type}/${row.id}`);
   for (const row of db.prepare('SELECT id,data_json FROM cut_orders').all()) parseJson(row.data_json, `orders/${row.id}`);
+  for (const row of db.prepare('SELECT id,data_json FROM quotes').all()) parseJson(row.data_json, `quotes/${row.id}`);
 }
 
 function cleanEntity(data) {
@@ -106,10 +117,95 @@ function cleanOrder(data) {
   return clean;
 }
 
+function cleanQuote(data) {
+  if (!data || Array.isArray(data) || typeof data !== 'object') throw httpError(400, 'Orçamento inválido.');
+  const clean = {};
+  const stringFields = ['clientId', 'clientName', 'clientDocument', 'clientPhone', 'clientEmail', 'clientAddress', 'clientNeighborhood', 'clientCity', 'clientState', 'clientZip', 'issueDate', 'validUntil', 'notes'];
+  for (const field of stringFields) clean[field] = asString(data[field], field === 'notes' ? 5000 : 500);
+  clean.status = QUOTE_STATUSES.has(data.status) ? data.status : 'Em elaboração';
+  clean.discount = Math.max(0, Number(data.discount) || 0);
+  clean.shipping = Math.max(0, Number(data.shipping) || 0);
+  clean.items = Array.isArray(data.items) ? data.items.slice(0, 100).map(item => {
+    const quantity = Math.max(0, Math.min(999999, Number(item?.quantity) || 0));
+    const unitPrice = Math.max(0, Math.min(9999999, Number(item?.unitPrice) || 0));
+    const product = item?.productSnapshot && !Array.isArray(item.productSnapshot) && typeof item.productSnapshot === 'object'
+      ? cleanEntity({ ...item.productSnapshot, name: item.productSnapshot.name || item.productName || 'Produto' })
+      : {};
+    return {
+      productId: asString(item?.productId, 120),
+      productName: asString(item?.productName, 500),
+      modelName: asString(item?.modelName, 500),
+      materialName: asString(item?.materialName, 500),
+      colorId: asString(item?.colorId, 120),
+      colorName: asString(item?.colorName, 500),
+      sleeveName: asString(item?.sleeveName, 500),
+      sleeveColorId: asString(item?.sleeveColorId, 120),
+      sleeveColorName: asString(item?.sleeveColorName, 500),
+      collarName: asString(item?.collarName, 500),
+      collarColorId: asString(item?.collarColorId, 120),
+      collarColorName: asString(item?.collarColorName, 500),
+      yokeName: asString(item?.yokeName, 500),
+      yokeColorId: asString(item?.yokeColorId, 120),
+      yokeColorName: asString(item?.yokeColorName, 500),
+      pocketName: asString(item?.pocketName, 500),
+      printTypeId: asString(item?.printTypeId, 120),
+      printTypeName: asString(item?.printTypeName, 500),
+      detailName: asString(item?.detailName, 1000),
+      size: asString(item?.size, 80),
+      quantity,
+      unitPrice,
+      lineTotal: Math.round(quantity * unitPrice * 100) / 100,
+      productSnapshot: product
+    };
+  }) : [];
+  if (!clean.items.length) clean.items = [];
+  clean.subtotal = Math.round(clean.items.reduce((sum, item) => sum + item.lineTotal, 0) * 100) / 100;
+  clean.total = Math.max(0, Math.round((clean.subtotal + clean.shipping - clean.discount) * 100) / 100);
+  return clean;
+}
+
 function normalizeOrder(data) {
   const order = parseJson(data.data_json ?? data, data.id ? `orders/${data.id}` : 'order');
   order.status = order.status === 'Impressa' ? 'Impressa' : 'Aberta';
   return order;
+}
+
+function normalizeQuote(data) {
+  const quote = parseJson(data.data_json ?? data, data.id ? `quotes/${data.id}` : 'quote');
+  quote.status = QUOTE_STATUSES.has(quote.status) ? quote.status : 'Em elaboração';
+  return quote;
+}
+
+function orderFromQuote(quote, item) {
+  const product = item.productSnapshot && typeof item.productSnapshot === 'object' ? item.productSnapshot : {};
+  return cleanOrder({
+    clientId: quote.clientId,
+    clientName: quote.clientName,
+    productId: item.productId,
+    productName: item.productName,
+    modelName: item.modelName,
+    materialName: item.materialName,
+    colorId: item.colorId,
+    colorName: item.colorName,
+    sleeveName: item.sleeveName,
+    sleeveColorId: item.sleeveColorId,
+    sleeveColorName: item.sleeveColorName,
+    collarName: item.collarName,
+    collarColorId: item.collarColorId,
+    collarColorName: item.collarColorName,
+    yokeName: item.yokeName,
+    yokeColorId: item.yokeColorId,
+    yokeColorName: item.yokeColorName,
+    pocketName: item.pocketName,
+    printTypeId: item.printTypeId,
+    printTypeName: item.printTypeName,
+    detailName: item.detailName,
+    purchaseOrder: `Orçamento ${String(quote.number).padStart(3, '0')}`,
+    issueDate: quote.issueDate,
+    notes: quote.notes,
+    productSnapshot: product,
+    lines: [{ quantity: item.quantity, size: item.size }]
+  });
 }
 
 function send(res, data, status = 200, type = 'application/json; charset=utf-8', extraHeaders = {}) {
@@ -271,6 +367,61 @@ async function api(req, res, url) {
     if (req.method === 'DELETE' && id) {
       const result = db.prepare('DELETE FROM cut_orders WHERE id=?').run(id);
       return result.changes ? send(res, { deleted: true }) : send(res, { error: 'Ordem não encontrada.' }, 404);
+    }
+  }
+
+  if (resource === 'quotes') {
+    if (req.method === 'GET' && !id) {
+      const rows = db.prepare('SELECT id,data_json FROM quotes ORDER BY number DESC').all();
+      return send(res, rows.map(row => normalizeQuote(row)));
+    }
+    if (req.method === 'POST' && !id) {
+      const input = cleanQuote(await readBody(req));
+      const create = () => transaction(() => {
+        const number = db.prepare('SELECT COALESCE(MAX(number),0)+1 AS next FROM quotes').get().next;
+        const timestamp = now();
+        const data = { ...input, id: crypto.randomUUID(), number, createdAt: timestamp, updatedAt: timestamp };
+        db.prepare('INSERT INTO quotes(id,number,status,data_json,created_at,updated_at) VALUES(?,?,?,?,?,?)')
+          .run(data.id, number, data.status, JSON.stringify(data), timestamp, timestamp);
+        return data;
+      });
+      return send(res, create(), 201);
+    }
+    if (req.method === 'PUT' && id) {
+      const input = cleanQuote(await readBody(req));
+      const old = db.prepare('SELECT number,created_at FROM quotes WHERE id=?').get(id);
+      if (!old) return send(res, { error: 'Orçamento não encontrado.' }, 404);
+      const data = { ...input, id, number: old.number, createdAt: old.created_at, updatedAt: now() };
+      db.prepare('UPDATE quotes SET status=?,data_json=?,updated_at=? WHERE id=?')
+        .run(data.status, JSON.stringify(data), data.updatedAt, id);
+      return send(res, data);
+    }
+    if (req.method === 'POST' && id && parts[3] === 'convert') {
+      const row = db.prepare('SELECT number,data_json FROM quotes WHERE id=?').get(id);
+      if (!row) return send(res, { error: 'Orçamento não encontrado.' }, 404);
+      const quote = normalizeQuote({ id, data_json: row.data_json });
+      if (quote.status !== 'Aprovado') return send(res, { error: 'Apenas orçamentos aprovados podem virar Ordem de Corte.' }, 400);
+      if (!quote.items?.length) return send(res, { error: 'Inclua pelo menos um item no orçamento antes de converter.' }, 400);
+      const created = transaction(() => {
+        const timestamp = now();
+        const orders = quote.items.filter(item => item.quantity > 0).map(item => {
+          const number = db.prepare('SELECT COALESCE(MAX(number),0)+1 AS next FROM cut_orders').get().next;
+          const input = orderFromQuote(quote, item);
+          const data = { ...input, id: crypto.randomUUID(), number, createdAt: timestamp, updatedAt: timestamp };
+          db.prepare('INSERT INTO cut_orders(id,number,status,data_json,created_at,updated_at) VALUES(?,?,?,?,?,?)')
+            .run(data.id, number, data.status, JSON.stringify(data), timestamp, timestamp);
+          return data;
+        });
+        const updatedQuote = { ...quote, status: 'Faturado', convertedAt: timestamp, orderIds: orders.map(order => order.id), updatedAt: timestamp };
+        db.prepare('UPDATE quotes SET status=?,data_json=?,updated_at=? WHERE id=?')
+          .run(updatedQuote.status, JSON.stringify(updatedQuote), timestamp, id);
+        return { quote: updatedQuote, orders };
+      });
+      return send(res, created, 201);
+    }
+    if (req.method === 'DELETE' && id) {
+      const result = db.prepare('DELETE FROM quotes WHERE id=?').run(id);
+      return result.changes ? send(res, { deleted: true }) : send(res, { error: 'Orçamento não encontrado.' }, 404);
     }
   }
 

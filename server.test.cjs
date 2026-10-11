@@ -40,6 +40,29 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
   const client = await json('/api/clients', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Cliente de teste' }) });
   assert.equal(client.response.status, 201);
   assert.ok(client.data.id);
+  const completeClient = await json(`/api/clients/${client.data.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...client.data, address: 'Rua Um', neighborhood: 'Centro', city: 'São José', state: 'SC', zip: '88000-000' }) });
+  assert.equal(completeClient.response.status, 200);
+  assert.equal(completeClient.data.city, 'São José');
+
+  const quote = await json('/api/quotes', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+    clientId: client.data.id,
+    clientName: 'Cliente de teste',
+    status: 'Aprovado',
+    issueDate: '2026-10-11',
+    validUntil: '2026-10-30',
+    items: [{ productName: 'Produto de orçamento', modelName: 'Modelo A', quantity: 2, size: 'XXGG3', unitPrice: 15.5 }],
+    shipping: 7,
+    discount: 3
+  }) });
+  assert.equal(quote.response.status, 201);
+  assert.equal(quote.data.number, 1);
+  assert.equal(quote.data.subtotal, 31);
+  assert.equal(quote.data.total, 35);
+  const converted = await json(`/api/quotes/${quote.data.id}/convert`, { method: 'POST' });
+  assert.equal(converted.response.status, 201);
+  assert.equal(converted.data.orders.length, 1);
+  assert.equal(converted.data.quote.status, 'Faturado');
+  assert.equal(converted.data.orders[0].purchaseOrder, 'Orçamento 001');
 
   const orderPayload = {
     clientId: client.data.id,
@@ -50,7 +73,7 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
   };
   const order = await json('/api/orders', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(orderPayload) });
   assert.equal(order.response.status, 201);
-  assert.equal(order.data.number, 1);
+  assert.equal(order.data.number, 2);
   assert.equal(order.data.total, 3);
   assert.equal(order.data.lines[1].quantity, 0);
 
@@ -58,7 +81,7 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
   const pdfBytes = Buffer.from(await pdf.arrayBuffer());
   assert.equal(pdf.status, 200);
   assert.equal(pdf.headers.get('content-type'), 'application/pdf');
-  assert.match(pdf.headers.get('content-disposition'), /Ordem-de-Corte-001\.pdf/);
+  assert.match(pdf.headers.get('content-disposition'), /Ordem-de-Corte-002\.pdf/);
   assert.equal(pdfBytes.subarray(0, 5).toString(), '%PDF-');
   assert.ok(pdfBytes.length > 2000);
   const printablePdf = await fetch(`${base}/api/orders/${order.data.id}/pdf?print=1`);
@@ -86,7 +109,7 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
 
   const persisted = new DatabaseSync(path.join(dataDirectory, 'ordem-de-corte.sqlite'), { readOnly: true });
   assert.equal(persisted.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
-  const saved = JSON.parse(persisted.prepare('SELECT data_json FROM cut_orders').get().data_json);
+  const saved = JSON.parse(persisted.prepare('SELECT data_json FROM cut_orders WHERE id=?').get(order.data.id).data_json);
   assert.equal(saved.id, order.data.id);
   persisted.close();
   assert.ok(fs.readdirSync(path.join(dataDirectory, 'backups')).some(name => name.endsWith('.sqlite')));

@@ -67,6 +67,18 @@ function drawInlineField(page, fonts, label, value, x, y, width, height, isLast 
   page.drawText(fitted.text, { x: x + 7, y: y + 7, size: fitted.size, font: fonts.bold, color: C.ink });
 }
 
+function drawPairedField(page, fonts, label, valueText, colorLabel, colorText, x, y, width, height, isLast = false) {
+  page.drawRectangle({ x, y, width, height, borderColor: C.softLine, borderWidth: 0.8, color: C.white });
+  if (!isLast) page.drawLine({ start: { x: x + width, y }, end: { x: x + width, y: y + height }, thickness: 0.8, color: C.softLine });
+  page.drawLine({ start: { x: x + 7, y: y + height / 2 }, end: { x: x + width - 7, y: y + height / 2 }, thickness: 0.45, color: C.softLine });
+  const top = fitText(fonts.bold, valueText, width - 78, 8.4, 5.8);
+  const bottom = fitText(fonts.bold, colorText, width - 78, 8.4, 5.8);
+  page.drawText(stripAccents(label).toUpperCase(), { x: x + 7, y: y + height - 13, size: 6.1, font: fonts.bold, color: C.muted });
+  page.drawText(top.text, { x: x + 58, y: y + height - 14, size: top.size, font: fonts.bold, color: C.ink });
+  page.drawText(stripAccents(colorLabel).toUpperCase(), { x: x + 7, y: y + 8, size: 6.1, font: fonts.bold, color: C.muted });
+  page.drawText(bottom.text, { x: x + 58, y: y + 7, size: bottom.size, font: fonts.bold, color: C.ink });
+}
+
 function drawMultilineField(page, fonts, label, value, x, y, width, height, isLast = false) {
   page.drawRectangle({ x, y, width, height, borderColor: C.softLine, borderWidth: 0.8, color: C.white });
   if (!isLast) page.drawLine({ start: { x: x + width, y }, end: { x: x + width, y: y + height }, thickness: 0.8, color: C.softLine });
@@ -124,9 +136,9 @@ function drawSizes(page, fonts, lines, x, y, width, height) {
   const firstX = x + Math.max(10, (width - totalWidth) / 2);
   safeLines.forEach((line, index) => {
     const cardX = firstX + index * (cardWidth + gap);
-    const circle = 23;
+    const circle = 29;
     page.drawEllipse({ x: cardX + cardWidth / 2, y: y + height - 25, xScale: circle / 2, yScale: circle / 2, borderColor: C.line, borderWidth: 1.2, color: C.white });
-    const size = fitText(fonts.bold, line.size, cardWidth - 4, 8.2, 5.8);
+    const size = fitText(fonts.bold, line.size, Math.min(cardWidth - 3, circle - 5), 8, 5.2);
     page.drawText(size.text, { x: cardX + (cardWidth - fonts.bold.widthOfTextAtSize(size.text, size.size)) / 2, y: y + height - 28, size: size.size, font: fonts.bold, color: C.ink });
     page.drawLine({ start: { x: cardX + 5, y: y + height - 39 }, end: { x: cardX + cardWidth - 5, y: y + height - 39 }, thickness: 1, color: C.line });
     const quantity = String(Math.max(0, Number.parseInt(line.quantity, 10) || 0));
@@ -171,28 +183,27 @@ async function generateOrderPdf(order, uploads) {
   const boxH = 449;
   page.drawRectangle({ x: margin, y: boxY, width: contentWidth, height: boxH, borderColor: C.line, borderWidth: 1.5, color: C.white });
 
-  const productW = (contentWidth) * 0.63;
-  drawInlineField(page, fonts, 'Produto', order.productName, margin, 623, productW, 32);
-  drawInlineField(page, fonts, 'Modelo', order.modelName, margin + productW, 623, contentWidth - productW, 32, true);
-
-  const w1 = contentWidth * 0.29;
-  const w2 = contentWidth * 0.21;
-  const w3 = contentWidth * 0.21;
+  const w1 = contentWidth * 0.30;
+  const w2 = contentWidth * 0.25;
+  const w3 = contentWidth * 0.25;
   const w4 = contentWidth - w1 - w2 - w3;
-  drawInlineField(page, fonts, 'Tecido', order.materialName, margin, 591, w1, 32);
-  drawInlineField(page, fonts, 'Cor', order.colorName, margin + w1, 591, w2, 32);
-  drawInlineField(page, fonts, 'Manga', joined(order.sleeveName, order.sleeveColorName), margin + w1 + w2, 591, w3, 32);
-  drawInlineField(page, fonts, 'Tipo de impressao', order.printTypeName, margin + w1 + w2 + w3, 591, w4, 32, true);
+  drawInlineField(page, fonts, 'Produto', order.productName, margin, 623, w1, 32);
+  drawInlineField(page, fonts, 'Modelo', order.modelName, margin + w1, 623, w2, 32);
+  drawInlineField(page, fonts, 'Tecido', order.materialName, margin + w1 + w2, 623, w3, 32);
+  drawInlineField(page, fonts, 'Cor', order.colorName, margin + w1 + w2 + w3, 623, w4, 32, true);
 
   const garmentW = contentWidth / 3;
-  drawInlineField(page, fonts, 'Gola', joined(order.collarName, order.collarColorName), margin, 559, garmentW, 32);
-  drawInlineField(page, fonts, 'Pala', joined(order.yokeName, order.yokeColorName), margin + garmentW, 559, garmentW, 32);
-  drawInlineField(page, fonts, 'Bolsos', order.pocketName, margin + garmentW * 2, 559, contentWidth - garmentW * 2, 32, true);
+  drawPairedField(page, fonts, 'Manga', order.sleeveName, 'Cor da manga', order.sleeveColorName, margin, 577, garmentW, 46);
+  drawPairedField(page, fonts, 'Gola', order.collarName, 'Cor da gola', order.collarColorName, margin + garmentW, 577, garmentW, 46);
+  drawPairedField(page, fonts, 'Pala', order.yokeName, 'Cor da pala', order.yokeColorName, margin + garmentW * 2, 577, contentWidth - garmentW * 2, 46, true);
 
-  drawMultilineField(page, fonts, 'Detalhe', order.detailName, margin, 511, contentWidth / 2, 48);
-  drawMultilineField(page, fonts, 'Observacoes', order.notes, margin + contentWidth / 2, 511, contentWidth / 2, 48, true);
+  drawInlineField(page, fonts, 'Tipo de impressao', order.printTypeName, margin, 545, contentWidth / 2, 32);
+  drawInlineField(page, fonts, 'Bolsos', order.pocketName, margin + contentWidth / 2, 545, contentWidth / 2, 32, true);
 
-  await drawOrderImage(document, page, fonts, order, uploads, margin + 10, 376, contentWidth - 20, 123);
+  drawMultilineField(page, fonts, 'Detalhe', order.detailName, margin, 497, contentWidth / 2, 48);
+  drawMultilineField(page, fonts, 'Observacoes', order.notes, margin + contentWidth / 2, 497, contentWidth / 2, 48, true);
+
+  await drawOrderImage(document, page, fonts, order, uploads, margin + 10, 374, contentWidth - 20, 111);
 
   const lines = Array.isArray(order.lines) ? order.lines : [];
   drawSizes(page, fonts, lines, margin + 10, 250, contentWidth - 20, 112);
