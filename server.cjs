@@ -19,7 +19,7 @@ const HOST = process.env.HOST || '127.0.0.1';
 const JSON_LIMIT = 15 * 1024 * 1024;
 const ALLOWED_ENTITIES = new Set(['clients', 'products', 'models', 'details', 'colors', 'printTypes', 'materials', 'workshops']);
 const LICENSE_STATUSES = new Set(['Ativa', 'Em avaliação', 'Suspensa', 'Expirada']);
-const ALLOWED_STATUSES = new Set(['Aberta', 'Impressa', 'Gerada OC']);
+const ALLOWED_STATUSES = new Set(['Aberta', 'Impressa', 'Gerada OC', 'Planejamento e Preparação', 'Sala de Corte', 'Produção / Costura', 'Acabamento e Qualidade', 'Finalização']);
 const QUOTE_STATUSES = new Set(['Em elaboração', 'Em análise', 'Aprovado', 'Rejeitado', 'Cancelado', 'Expirado', 'Gerada OC']);
 const MIME_EXTENSIONS = new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]);
 
