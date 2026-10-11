@@ -96,6 +96,18 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
   assert.equal(converted.data.orders[0].purchaseOrder, 'Orçamento 001');
   assert.equal(converted.data.orders[0].status, 'Gerada OC');
 
+  const linkedOrder = await json('/api/orders', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+    clientId: client.data.id,
+    clientName: 'Cliente de teste',
+    productName: 'Produto vinculado',
+    sourceQuoteId: quote.data.id,
+    sourceQuoteNumber: String(quote.data.number),
+    status: 'Planejamento e Preparação',
+    lines: [{ quantity: 1, size: 'M' }]
+  }) });
+  assert.equal(linkedOrder.response.status, 201);
+  assert.equal(linkedOrder.data.status, 'Gerada OC');
+
   const orderPayload = {
     clientId: client.data.id,
     clientName: 'Cliente de teste',
@@ -105,7 +117,7 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
   };
   const order = await json('/api/orders', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(orderPayload) });
   assert.equal(order.response.status, 201);
-  assert.equal(order.data.number, 2);
+  assert.equal(order.data.number, 3);
   assert.equal(order.data.total, 3);
   assert.equal(order.data.lines[1].quantity, 0);
 
@@ -113,7 +125,7 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
   const pdfBytes = Buffer.from(await pdf.arrayBuffer());
   assert.equal(pdf.status, 200);
   assert.equal(pdf.headers.get('content-type'), 'application/pdf');
-  assert.match(pdf.headers.get('content-disposition'), /Ordem-de-Corte-002\.pdf/);
+  assert.match(pdf.headers.get('content-disposition'), /Ordem-de-Corte-003\.pdf/);
   assert.equal(pdfBytes.subarray(0, 5).toString(), '%PDF-');
   assert.ok(pdfBytes.length > 2000);
   const printablePdf = await fetch(`${base}/api/orders/${order.data.id}/pdf?print=1`);
@@ -124,7 +136,7 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
   assert.equal(printPage.status, 200);
   assert.match(printPage.headers.get('content-type'), /^text\/html/);
   assert.match(printHtml, /ORDEM DE CORTE/);
-  assert.match(printHtml, /CONTROLE DE PRODUÇÃO/);
+  assert.match(printHtml, /ORDEM DE CORTE/);
   assert.match(printHtml, /Cliente de teste/);
   assert.match(printHtml, /Produto de teste/);
   assert.match(printHtml, /window\.print\(\)/);

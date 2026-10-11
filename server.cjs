@@ -427,6 +427,7 @@ async function api(req, res, url) {
     }
     if (req.method === 'POST' && !id) {
       const input = cleanOrder(await readBody(req));
+      if (input.sourceQuoteId || input.sourceQuoteNumber) input.status = 'Gerada OC';
       const create = () => transaction(() => {
         const number = db.prepare('SELECT COALESCE(MAX(number),0)+1 AS next FROM cut_orders').get().next;
         const timestamp = now();
