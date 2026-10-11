@@ -18,6 +18,7 @@ const PORT = Number(process.env.PORT || 4180);
 const HOST = process.env.HOST || '127.0.0.1';
 const JSON_LIMIT = 15 * 1024 * 1024;
 const ALLOWED_ENTITIES = new Set(['clients', 'products', 'models', 'details', 'colors', 'printTypes', 'materials', 'workshops']);
+const LICENSE_STATUSES = new Set(['Ativa', 'Em avaliação', 'Suspensa', 'Expirada']);
 const ALLOWED_STATUSES = new Set(['Aberta', 'Impressa']);
 const QUOTE_STATUSES = new Set(['Em elaboração', 'Em análise', 'Aprovado', 'Rejeitado', 'Cancelado', 'Expirado', 'Faturado']);
 const MIME_EXTENSIONS = new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]);
@@ -55,6 +56,11 @@ db.exec(`
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS app_settings(
+    setting_key TEXT PRIMARY KEY,
+    data_json TEXT NOT NULL CHECK(json_valid(data_json)),
+    updated_at TEXT NOT NULL
+  );
   CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(type);
   CREATE INDEX IF NOT EXISTS idx_orders_status ON cut_orders(status);
   CREATE INDEX IF NOT EXISTS idx_quotes_status ON quotes(status);
@@ -79,12 +85,44 @@ function parseJson(value, context) {
   }
 }
 
+const DEFAULT_COMPANY_SETTINGS = {
+  legalName: '', tradeName: '', activity: '', cnpj: '', stateRegistration: '', municipalRegistration: '', taxRegime: 'Simples Nacional',
+  legalResponsible: '', legalResponsibleCpf: '', zip: '', street: '', addressNumber: '', complement: '', neighborhood: '', city: '', state: '',
+  email: '', phone: '', website: '', logoLightUrl: '', logoDarkUrl: '', iconUrl: '', primaryColor: '#1d4ed8', secondaryColor: '#172b4d',
+  footerText: '', licenseKey: '', licenseValidUntil: '', licenseStatus: 'Ativa'
+};
+
+function cleanCompanySettings(data) {
+  const clean = { ...DEFAULT_COMPANY_SETTINGS };
+  for (const key of Object.keys(clean)) {
+    if (typeof data?.[key] === 'string') clean[key] = asString(data[key], key.endsWith('Url') ? 1000 : 5000);
+  }
+  clean.taxRegime = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real'].includes(clean.taxRegime) ? clean.taxRegime : DEFAULT_COMPANY_SETTINGS.taxRegime;
+  clean.licenseStatus = LICENSE_STATUSES.has(clean.licenseStatus) ? clean.licenseStatus : DEFAULT_COMPANY_SETTINGS.licenseStatus;
+  for (const key of ['primaryColor', 'secondaryColor']) if (!/^#[0-9a-f]{6}$/i.test(clean[key])) clean[key] = DEFAULT_COMPANY_SETTINGS[key];
+  return clean;
+}
+
+function readCompanySettings() {
+  const row = db.prepare('SELECT data_json FROM app_settings WHERE setting_key=?').get('company');
+  return row ? cleanCompanySettings(parseJson(row.data_json, 'settings/company')) : { ...DEFAULT_COMPANY_SETTINGS };
+}
+
+function saveCompanySettings(input) {
+  const data = cleanCompanySettings(input);
+  const updatedAt = now();
+  db.prepare('INSERT INTO app_settings(setting_key,data_json,updated_at) VALUES(?,?,?) ON CONFLICT(setting_key) DO UPDATE SET data_json=excluded.data_json,updated_at=excluded.updated_at')
+    .run('company', JSON.stringify(data), updatedAt);
+  return data;
+}
+
 function verifyDatabase() {
   const result = db.prepare('PRAGMA quick_check').get();
   if (result.quick_check !== 'ok') throw new Error(`Falha de integridade do SQLite: ${result.quick_check}`);
   for (const row of db.prepare('SELECT type,id,data_json FROM entities').all()) parseJson(row.data_json, `${row.type}/${row.id}`);
   for (const row of db.prepare('SELECT id,data_json FROM cut_orders').all()) parseJson(row.data_json, `orders/${row.id}`);
   for (const row of db.prepare('SELECT id,data_json FROM quotes').all()) parseJson(row.data_json, `quotes/${row.id}`);
+  for (const row of db.prepare('SELECT setting_key,data_json FROM app_settings').all()) parseJson(row.data_json, `settings/${row.setting_key}`);
 }
 
 function cleanEntity(data) {
@@ -311,6 +349,11 @@ async function api(req, res, url) {
   if (url.pathname === '/api/health' && req.method === 'GET') {
     const check = db.prepare('PRAGMA quick_check').get().quick_check;
     return send(res, { ok: check === 'ok', database: check, time: now() }, check === 'ok' ? 200 : 503);
+  }
+
+  if (resource === 'settings' && id === 'company') {
+    if (req.method === 'GET') return send(res, readCompanySettings());
+    if (req.method === 'PUT') return send(res, saveCompanySettings(await readBody(req)));
   }
 
   if (ALLOWED_ENTITIES.has(resource)) {
