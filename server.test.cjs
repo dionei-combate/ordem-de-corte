@@ -118,6 +118,7 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
   const order = await json('/api/orders', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(orderPayload) });
   assert.equal(order.response.status, 201);
   assert.equal(order.data.number, 3);
+  assert.equal(order.data.status, 'Planejamento e Preparação');
   assert.equal(order.data.total, 3);
   assert.equal(order.data.lines[1].quantity, 0);
 
