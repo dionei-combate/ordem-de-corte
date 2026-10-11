@@ -19,7 +19,7 @@ const HOST = process.env.HOST || '127.0.0.1';
 const JSON_LIMIT = 15 * 1024 * 1024;
 const ALLOWED_ENTITIES = new Set(['clients', 'products', 'models', 'details', 'colors', 'printTypes', 'materials', 'workshops']);
 const LICENSE_STATUSES = new Set(['Ativa', 'Em avaliação', 'Suspensa', 'Expirada']);
-const ALLOWED_STATUSES = new Set(['Aberta', 'Impressa', 'Gerada OC', 'Planejamento e Preparação', 'Sala de Corte', 'Produção / Costura', 'Acabamento e Qualidade', 'Finalização']);
+const ALLOWED_STATUSES = new Set(['Gerada OC', 'Planejamento e Preparação', 'Sala de Corte', 'Produção / Costura', 'Acabamento e Qualidade', 'Finalização']);
 const QUOTE_STATUSES = new Set(['Em elaboração', 'Em análise', 'Aprovado', 'Rejeitado', 'Cancelado', 'Expirado', 'Gerada OC']);
 const MIME_EXTENSIONS = new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp']]);
 
@@ -43,7 +43,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS cut_orders(
     id TEXT PRIMARY KEY,
     number INTEGER NOT NULL UNIQUE CHECK(number > 0),
-    status TEXT NOT NULL DEFAULT 'Aberta',
+    status TEXT NOT NULL DEFAULT 'Planejamento e Preparação',
     data_json TEXT NOT NULL CHECK(json_valid(data_json)),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -175,7 +175,7 @@ function cleanOrder(data) {
   const clean = {};
   const stringFields = ['clientId', 'clientName', 'productId', 'productName', 'modelId', 'modelName', 'colorId', 'colorName', 'detailId', 'detailName', 'materialId', 'materialName', 'sleeveName', 'sleeveColorId', 'sleeveColorName', 'collarName', 'collarColorId', 'collarColorName', 'yokeName', 'yokeColorId', 'yokeColorName', 'printTypeId', 'printTypeName', 'artName', 'pocketName', 'workshopId', 'workshopName', 'purchaseOrder', 'sourceQuoteId', 'sourceQuoteNumber', 'issueDate', 'deliveryDate', 'notes'];
   for (const field of stringFields) clean[field] = asString(data[field], field === 'notes' ? 5000 : 500);
-  clean.status = ALLOWED_STATUSES.has(data.status) ? data.status : data.status === 'Impressa' ? 'Impressa' : 'Aberta';
+  clean.status = ALLOWED_STATUSES.has(data.status) ? data.status : 'Planejamento e Preparação';
   clean.lines = Array.isArray(data.lines) ? data.lines.slice(0, 200).map(line => ({
     quantity: Math.max(0, Math.min(999999, Number.parseInt(line?.quantity, 10) || 0)),
     size: asString(line?.size, 80)
@@ -239,7 +239,7 @@ function cleanQuote(data) {
 
 function normalizeOrder(data) {
   const order = parseJson(data.data_json ?? data, data.id ? `orders/${data.id}` : 'order');
-  order.status = ALLOWED_STATUSES.has(order.status) ? order.status : 'Aberta';
+  order.status = ALLOWED_STATUSES.has(order.status) ? order.status : 'Planejamento e Preparação';
   return order;
 }
 
