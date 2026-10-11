@@ -31,6 +31,8 @@ async function generateQuotePdf(quote, company = {}) {
     const companyTitle = fit(bold, companyName, 205, 16);
     page.drawText(companyTitle.text, { x: margin + 67, y: 784, size: companyTitle.size, font: bold, color: C.ink });
     page.drawText('PROPOSTA COMERCIAL', { x: margin + 67, y: 771, size: 7, font: bold, color: C.muted });
+    const companyDetails = [company.legalName, company.cnpj, company.phone, company.email].filter(Boolean).join(' · ');
+    if (companyDetails) page.drawText(fit(regular, companyDetails, 205, 5.8, 4.8).text, { x: margin + 67, y: 759, size: 5.8, font: regular, color: C.muted });
     page.drawRectangle({ x: page.getWidth() - margin - 120, y: 752, width: 120, height: 58, borderColor: C.line, borderWidth: 1.4, color: C.white });
     page.drawText('ORCAMENTO', { x: page.getWidth() - margin - 91, y: 783, size: 10, font: bold, color: C.ink });
     page.drawText(`No ${String(Number(quote.number) || 0).padStart(3, '0')}`, { x: page.getWidth() - margin - 73, y: 767, size: 10, font: bold, color: C.muted });
@@ -42,7 +44,8 @@ async function generateQuotePdf(quote, company = {}) {
     field(page, fonts, 'Cliente', quote.clientName, margin, 646, width * .62, 29);
     field(page, fonts, 'CPF / CNPJ', quote.clientDocument, margin + width * .62 + 8, 646, width * .38 - 8, 29);
     const address = [quote.clientAddress, quote.clientNeighborhood, quote.clientCity, quote.clientState, quote.clientZip].filter(Boolean).join(' · ');
-    field(page, fonts, 'Contato e endereco', [quote.clientPhone, quote.clientEmail, address].filter(Boolean).join(' · '), margin, 608, width, 29);
+    const commercial = [quote.paymentTerms && `Pagamento: ${quote.paymentTerms}`, quote.deliveryTime && `Entrega: ${quote.deliveryTime}`, quote.sellerName && `Vendedor: ${quote.sellerName}`].filter(Boolean).join(' · ');
+    field(page, fonts, 'Contato / condicoes', [quote.clientPhone, quote.clientEmail, address, commercial].filter(Boolean).join(' · '), margin, 608, width, 29);
     page.drawText(pageIndex ? 'Itens do orcamento - continuação' : 'ITENS DO ORCAMENTO', { x: margin, y: 583, size: 8, font: bold, color: C.white });
     page.drawRectangle({ x: margin, y: 578, width, height: 18, color: C.navy });
     page.drawText(pageIndex ? 'ITENS DO ORCAMENTO - CONTINUACAO' : 'ITENS DO ORCAMENTO', { x: margin + 7, y: 584, size: 7, font: bold, color: C.white });
