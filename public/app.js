@@ -1,7 +1,7 @@
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const api=async(path,options={})=>{const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);try{const headers={...(options.headers||{})};if(options.body&&!headers['content-type'])headers['content-type']='application/json';const r=await fetch(path,{...options,headers,signal:controller.signal}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||`Não foi possível concluir (${r.status}).`);return d}catch(error){if(error.name==='AbortError')throw new Error('O servidor demorou para responder. Tente novamente.');if(error instanceof TypeError)throw new Error('O servidor local está indisponível. Seus dados não foram alterados.');throw error}finally{clearTimeout(timeout)}};
-let state={view:'orders',orders:[],clients:[],products:[],models:[],details:[],colors:[],printTypes:[],materials:[],workshops:[],editing:null,orderSort:{field:'number',direction:'asc'},registrySort:{field:'name',direction:'asc'},orderQuery:''};
+let state={view:'orders',orders:[],clients:[],products:[],models:[],details:[],colors:[],printTypes:[],materials:[],workshops:[],editing:null,orderSort:{field:'number',direction:'desc'},registrySort:{field:'name',direction:'asc'},orderQuery:''};
 const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}),date=v=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-BR'):'—';
 const orderStatus=o=>o?.status==='Impressa'?'Impressa':'Aberta';
 const searchText=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleUpperCase('pt-BR');
