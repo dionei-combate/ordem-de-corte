@@ -1,7 +1,7 @@
 (function(){
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const options=(rows,value,labeler)=>`<option value="">SELECIONE</option>${rows.map(x=>`<option value="${x.id}" ${x.id===value?'selected':''}>${esc(labeler(x))}</option>`).join('')}`;
-  const textOptions=(rows,value)=>`<option value="">SELECIONE</option>${rows.map(x=>`<option value="${esc(x)}" ${x===value?'selected':''}>${esc(x)}</option>`).join('')}`;
+  const options=(rows,value,labeler)=>rows.map(x=>`<option value="${x.id}" ${x.id===value?'selected':''}>${esc(labeler(x))}</option>`).join('');
+  const textOptions=(rows,value)=>rows.map(x=>`<option value="${esc(x)}" ${x===value?'selected':''}>${esc(x)}</option>`).join('');
   const edit=(label,name,value,type='text')=>`<label class="oc-field"><span>${label}</span><input type="${type}" name="${name}" value="${esc(value)}"></label>`;
   const textEdit=(label,name,value)=>`<label class="oc-field oc-text-field"><span>${label}</span><textarea name="${name}" rows="3">${esc(value)}</textarea></label>`;
   const show=(label,value)=>`<div class="oc-field"><span>${label}</span><b>${esc(value)||'—'}</b></div>`;

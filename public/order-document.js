@@ -1,7 +1,7 @@
 (function(){
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const field=(label,name,value,type='text')=>`<div class="doc-cell"><span class="doc-label">${label}</span><input class="doc-input" type="${type}" name="${name}" value="${esc(value)}"></div>`;
-  const optionList=(rows,value,labeler)=>`<option value="">SELECIONE</option>${rows.map(x=>`<option value="${x.id}" ${x.id===value?'selected':''}>${esc(labeler(x))}</option>`).join('')}`;
+  const optionList=(rows,value,labeler)=>rows.map(x=>`<option value="${x.id}" ${x.id===value?'selected':''}>${esc(labeler(x))}</option>`).join('');
   function gradeRows(lines){return lines.map((line,i)=>`<div class="doc-grade-row" data-line="${i}"><input class="quantity" type="number" min="0" value="${+line.quantity||0}" oninput="updateDocTotal()"><input class="size" value="${esc(line.size)}" placeholder="TAMANHO"><button class="doc-remove" type="button" onclick="this.parentElement.remove();updateDocTotal()">×</button></div>`).join('')}
   function documentHtml(o={},editable=true){
     const p=o.productSnapshot||{}, lines=legacyGrade(o.lines), number=String(o.number||state.orders.reduce((m,x)=>Math.max(m,+x.number||0),0)+1).padStart(3,'0');
