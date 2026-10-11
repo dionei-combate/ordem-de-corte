@@ -26,6 +26,15 @@ function joined(...parts) {
   return parts.map(part => String(part ?? '').trim()).filter(Boolean).join(' / ');
 }
 
+function productOptions(order, key) {
+  const aliases = { collars: ['collars', 'golas', 'gola', 'collar'], yokes: ['yokes', 'palas', 'pala', 'yoke'] };
+  const keys = aliases[key] || [key];
+  for (const optionKey of keys) {
+    if (Array.isArray(order.productSnapshot?.[optionKey])) return order.productSnapshot[optionKey].map(item => String(item ?? '').trim()).filter(Boolean);
+  }
+  return order[`${key.slice(0, -1)}Name`] ? [order[`${key.slice(0, -1)}Name`]] : [];
+}
+
 function sizesHtml(lines) {
   return lines.map(line => `<div class="oc-size-item"><div class="oc-size-circle"><b>${value(line.size)}</b></div><div class="oc-fraction-line"></div><strong>${Math.max(0, Number.parseInt(line.quantity, 10) || 0)}</strong></div>`).join('');
 }
@@ -39,6 +48,16 @@ function generatePrintPage(order) {
   const lines = Array.isArray(order.lines) ? order.lines.slice(0, 18) : [];
   const image = String(order.productSnapshot?.image || '').startsWith('/uploads/') ? order.productSnapshot.image : '';
   const total = Number(order.total) || lines.reduce((sum, line) => sum + (Number(line.quantity) || 0), 0);
+  const modelVisible = productOptions(order, 'models').length > 0;
+  const materialVisible = productOptions(order, 'materials').length > 0;
+  const sleeveVisible = productOptions(order, 'sleeves').length > 0;
+  const collarVisible = productOptions(order, 'collars').length > 0;
+  const yokeVisible = productOptions(order, 'yokes').length > 0;
+  const pocketVisible = productOptions(order, 'pockets').length > 0;
+  const sizeVisible = productOptions(order, 'sizes').length > 0 || lines.some(line => String(line.size || '').trim());
+  const mainFields = [field('PRODUTO', order.productName), modelVisible && field('MODELO', order.modelName), materialVisible && field('TECIDO', order.materialName), field('COR', order.colorName)].filter(Boolean);
+  const garmentFields = [sleeveVisible && pairedField('MANGA', order.sleeveName, 'COR DA MANGA', order.sleeveColorName), collarVisible && pairedField('GOLA', order.collarName, 'COR DA GOLA', order.collarColorName), yokeVisible && pairedField('PALA', order.yokeName, 'COR DA PALA', order.yokeColorName)].filter(Boolean);
+  const extraFields = [field('TIPO DE IMPRESSÃO', order.printTypeName), pocketVisible && field('BOLSOS', order.pocketName)].filter(Boolean);
 
   return `<!doctype html>
 <html lang="pt-BR">
@@ -112,12 +131,12 @@ body{margin:0;background:#e8edf4;color:#20242b;font-family:Arial,sans-serif}
 <section class="oc-top-row">${field('DATA', formatDate(order.issueDate))}${field('ENTREGA', formatDate(order.deliveryDate))}${field('ORDEM DE COMPRA CLIENTE', order.purchaseOrder)}</section>
 <section class="oc-client-row">${field('CLIENTE', order.clientName)}${field('FACÇÃO', order.workshopName)}</section>
 <section class="oc-production-box">
-<div class="oc-product-row oc-product-main">${field('PRODUTO', order.productName)}${field('MODELO', order.modelName)}${field('TECIDO', order.materialName)}${field('COR', order.colorName)}</div>
-<div class="oc-product-row oc-product-garment">${pairedField('MANGA', order.sleeveName, 'COR DA MANGA', order.sleeveColorName)}${pairedField('GOLA', order.collarName, 'COR DA GOLA', order.collarColorName)}${pairedField('PALA', order.yokeName, 'COR DA PALA', order.yokeColorName)}</div>
-<div class="oc-product-row oc-product-extra">${field('TIPO DE IMPRESSÃO', order.printTypeName)}${field('BOLSOS', order.pocketName)}</div>
+<div class="oc-product-row oc-product-main" style="grid-template-columns:repeat(${mainFields.length},minmax(0,1fr))">${mainFields.join('')}</div>
+${garmentFields.length ? `<div class="oc-product-row oc-product-garment" style="grid-template-columns:repeat(${garmentFields.length},minmax(0,1fr))">${garmentFields.join('')}</div>` : ''}
+<div class="oc-product-row oc-product-extra" style="grid-template-columns:repeat(${extraFields.length},minmax(0,1fr))">${extraFields.join('')}</div>
 <div class="oc-product-row oc-product-secondary">${textField('DETALHE', order.detailName)}${textField('OBSERVAÇÕES', order.notes)}</div>
 <div class="oc-product-visual"><div class="oc-product-visual-label"><span>DESENHO DO PRODUTO</span><b>IMAGEM DA ORDEM</b></div><figure>${image ? `<img src="${escapeHtml(image)}" alt="Desenho do produto">` : '<div class="oc-product-image-empty">Sem imagem cadastrada</div>'}</figure></div>
-<div class="oc-sizes">${sizesHtml(lines)}</div>
+${sizeVisible ? `<div class="oc-sizes">${sizesHtml(lines)}</div>` : ''}
 </section>
 <footer class="oc-total"><span>TOTAL DE PEÇAS</span><strong>${total}</strong></footer>
 <section class="print-signatures"><div class="print-signature">RESPONSÁVEL PELA EMISSÃO</div><div class="print-signature">RESPONSÁVEL PELO CORTE</div></section>

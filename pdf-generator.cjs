@@ -22,6 +22,16 @@ function joined(...parts) {
   return parts.map(part => String(part ?? '').trim()).filter(Boolean).join(' / ');
 }
 
+function productOptions(order, key) {
+  const aliases = { collars: ['collars', 'golas', 'gola', 'collar'], yokes: ['yokes', 'palas', 'pala', 'yoke'] };
+  const keys = aliases[key] || [key];
+  for (const optionKey of keys) {
+    if (Array.isArray(order.productSnapshot?.[optionKey])) return order.productSnapshot[optionKey].map(item => String(item ?? '').trim()).filter(Boolean);
+  }
+  const names = { models: 'modelName', materials: 'materialName', sleeves: 'sleeveName', collars: 'collarName', yokes: 'yokeName', pockets: 'pocketName' };
+  return names[key] && order[names[key]] ? [order[names[key]]] : [];
+}
+
 function formatDate(input) {
   if (!input) return '-';
   const parts = String(input).split('-');
@@ -183,22 +193,25 @@ async function generateOrderPdf(order, uploads) {
   const boxH = 449;
   page.drawRectangle({ x: margin, y: boxY, width: contentWidth, height: boxH, borderColor: C.line, borderWidth: 1.5, color: C.white });
 
-  const w1 = contentWidth * 0.30;
-  const w2 = contentWidth * 0.25;
-  const w3 = contentWidth * 0.25;
-  const w4 = contentWidth - w1 - w2 - w3;
-  drawInlineField(page, fonts, 'Produto', order.productName, margin, 623, w1, 32);
-  drawInlineField(page, fonts, 'Modelo', order.modelName, margin + w1, 623, w2, 32);
-  drawInlineField(page, fonts, 'Tecido', order.materialName, margin + w1 + w2, 623, w3, 32);
-  drawInlineField(page, fonts, 'Cor', order.colorName, margin + w1 + w2 + w3, 623, w4, 32, true);
+  const modelVisible = productOptions(order, 'models').length > 0;
+  const materialVisible = productOptions(order, 'materials').length > 0;
+  const sleeveVisible = productOptions(order, 'sleeves').length > 0;
+  const collarVisible = productOptions(order, 'collars').length > 0;
+  const yokeVisible = productOptions(order, 'yokes').length > 0;
+  const pocketVisible = productOptions(order, 'pockets').length > 0;
+  const mainFields = [['Produto', order.productName], ...(modelVisible ? [['Modelo', order.modelName]] : []), ...(materialVisible ? [['Tecido', order.materialName]] : []), ['Cor', order.colorName]];
+  const mainW = contentWidth / mainFields.length;
+  mainFields.forEach(([label, text], index) => drawInlineField(page, fonts, label, text, margin + mainW * index, 623, mainW, 32, index === mainFields.length - 1));
 
-  const garmentW = contentWidth / 3;
-  drawPairedField(page, fonts, 'Manga', order.sleeveName, 'Cor da manga', order.sleeveColorName, margin, 577, garmentW, 46);
-  drawPairedField(page, fonts, 'Gola', order.collarName, 'Cor da gola', order.collarColorName, margin + garmentW, 577, garmentW, 46);
-  drawPairedField(page, fonts, 'Pala', order.yokeName, 'Cor da pala', order.yokeColorName, margin + garmentW * 2, 577, contentWidth - garmentW * 2, 46, true);
+  const garmentFields = [sleeveVisible && ['Manga', order.sleeveName, 'Cor da manga', order.sleeveColorName], collarVisible && ['Gola', order.collarName, 'Cor da gola', order.collarColorName], yokeVisible && ['Pala', order.yokeName, 'Cor da pala', order.yokeColorName]].filter(Boolean);
+  if (garmentFields.length) {
+    const garmentW = contentWidth / garmentFields.length;
+    garmentFields.forEach(([label, text, colorLabel, colorText], index) => drawPairedField(page, fonts, label, text, colorLabel, colorText, margin + garmentW * index, 577, garmentW, 46, index === garmentFields.length - 1));
+  }
 
-  drawInlineField(page, fonts, 'Tipo de impressao', order.printTypeName, margin, 545, contentWidth / 2, 32);
-  drawInlineField(page, fonts, 'Bolsos', order.pocketName, margin + contentWidth / 2, 545, contentWidth / 2, 32, true);
+  const extraFields = [['Tipo de impressao', order.printTypeName], ...(pocketVisible ? [['Bolsos', order.pocketName]] : [])];
+  const extraW = contentWidth / extraFields.length;
+  extraFields.forEach(([label, text], index) => drawInlineField(page, fonts, label, text, margin + extraW * index, 545, extraW, 32, index === extraFields.length - 1));
 
   drawMultilineField(page, fonts, 'Detalhe', order.detailName, margin, 497, contentWidth / 2, 48);
   drawMultilineField(page, fonts, 'Observacoes', order.notes, margin + contentWidth / 2, 497, contentWidth / 2, 48, true);
@@ -206,7 +219,8 @@ async function generateOrderPdf(order, uploads) {
   await drawOrderImage(document, page, fonts, order, uploads, margin + 10, 374, contentWidth - 20, 111);
 
   const lines = Array.isArray(order.lines) ? order.lines : [];
-  drawSizes(page, fonts, lines, margin + 10, 250, contentWidth - 20, 112);
+  const sizeVisible = productOptions(order, 'sizes').length > 0 || lines.some(line => String(line.size || '').trim());
+  if (sizeVisible) drawSizes(page, fonts, lines, margin + 10, 250, contentWidth - 20, 112);
 
   const total = Number(order.total) || lines.reduce((sum, line) => sum + (Number(line.quantity) || 0), 0);
   page.drawRectangle({ x: page.getWidth() - margin - 176, y: 209, width: 176, height: 30, borderColor: C.line, borderWidth: 1.4, color: C.white });
