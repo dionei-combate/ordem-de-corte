@@ -156,9 +156,10 @@ function drawSizes(page, fonts, lines, x, y, width, height) {
   });
 }
 
-async function generateOrderPdf(order, uploads) {
+async function generateOrderPdf(order, uploads, company = {}) {
   const document = await PDFDocument.create();
   const number = String(Number(order.number) || 0).padStart(3, '0');
+  const companyName = String(company.tradeName || 'ORDEM DE CORTE').trim();
   document.setTitle(`Ordem de Corte ${number}`);
   document.setAuthor('Ordem de Corte');
   document.setCreator('Ordem de Corte - banco local');
@@ -174,7 +175,8 @@ async function generateOrderPdf(order, uploads) {
   page.drawRectangle({ x: margin, y: 754, width: contentWidth - 125, height: 62, borderColor: C.line, borderWidth: 1.5, color: C.white });
   page.drawEllipse({ x: margin + 39, y: 785, xScale: 20, yScale: 20, color: C.navy });
   page.drawText('OC', { x: margin + 30, y: 780, size: 13, font: bold, color: C.white });
-  page.drawText('ORDEM DE CORTE', { x: margin + 72, y: 787, size: 17, font: bold, color: C.ink });
+  const companyTitle = fitText(bold, companyName, 205, 17, 8);
+  page.drawText(companyTitle.text, { x: margin + 72, y: 787, size: companyTitle.size, font: bold, color: C.ink });
   page.drawText('CONTROLE DE PRODUCAO', { x: margin + 72, y: 773, size: 7.3, font: bold, color: C.muted });
   page.drawRectangle({ x: page.getWidth() - margin - 117, y: 754, width: 117, height: 62, borderColor: C.line, borderWidth: 1.5, color: C.white });
   page.drawText('ORDEM', { x: page.getWidth() - margin - 81, y: 787, size: 12, font: bold, color: C.ink });

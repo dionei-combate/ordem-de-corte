@@ -43,8 +43,9 @@ function pairedField(label, valueText, colorLabel, colorText) {
   return `<div class="oc-field oc-paired-field"><div class="oc-paired-slot"><span>${label}</span><b>${value(valueText)}</b></div><div class="oc-paired-slot"><span>${colorLabel}</span><b>${value(colorText)}</b></div></div>`;
 }
 
-function generatePrintPage(order) {
+function generatePrintPage(order, company = {}) {
   const number = String(Number(order.number) || 0).padStart(3, '0');
+  const companyName = String(company.tradeName || 'ORDEM DE CORTE').trim();
   const lines = Array.isArray(order.lines) ? order.lines.slice(0, 18) : [];
   const image = String(order.productSnapshot?.image || '').startsWith('/uploads/') ? order.productSnapshot.image : '';
   const total = Number(order.total) || lines.reduce((sum, line) => sum + (Number(line.quantity) || 0), 0);
@@ -127,7 +128,7 @@ body{margin:0;background:#e8edf4;color:#20242b;font-family:Arial,sans-serif}
 <body>
 <div class="toolbar"><div><strong>Ordem de Corte ${number}</strong><br><small>Documento ajustado para caber em uma folha A4.</small></div><button onclick="window.print()">Abrir impressão</button></div>
 <article class="order-document oc-reference">
-<header class="oc-header"><div class="oc-brand"><span class="oc-mark">OC</span><div><strong>ORDEM DE CORTE</strong><small>CONTROLE DE PRODUÇÃO</small></div></div><div class="oc-title"><b>ORDEM</b><span>Nº ${number}</span></div></header>
+<header class="oc-header"><div class="oc-brand"><span class="oc-mark">OC</span><div><strong>${value(companyName)}</strong><small>CONTROLE DE PRODUÇÃO</small></div></div><div class="oc-title"><b>ORDEM</b><span>Nº ${number}</span></div></header>
 <section class="oc-top-row">${field('DATA', formatDate(order.issueDate))}${field('ENTREGA', formatDate(order.deliveryDate))}${field('ORDEM DE COMPRA CLIENTE', order.purchaseOrder)}</section>
 <section class="oc-client-row">${field('CLIENTE', order.clientName)}${field('FACÇÃO', order.workshopName)}</section>
 <section class="oc-production-box">

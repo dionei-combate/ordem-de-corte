@@ -68,6 +68,7 @@ db.exec(`
 
 const now = () => new Date().toISOString();
 const asString = (value, max = 500) => String(value ?? '').trim().slice(0, max);
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 
 function httpError(status, message) {
   const error = new Error(message);
@@ -381,7 +382,7 @@ async function api(req, res, url) {
       const order = normalizeOrder({ id, data_json: row.data_json });
       let pdf;
       try {
-        pdf = await generateOrderPdf(order, UPLOADS);
+        pdf = await generateOrderPdf(order, UPLOADS, readCompanySettings());
       } catch (error) {
         console.error('Falha ao gerar PDF:', error);
         throw httpError(503, 'Não foi possível gerar o PDF neste computador.');
@@ -428,7 +429,7 @@ async function api(req, res, url) {
       const quote = normalizeQuote({ id, data_json: row.data_json });
       let pdf;
       try {
-        pdf = await generateQuotePdf(quote);
+        pdf = await generateQuotePdf(quote, readCompanySettings());
       } catch (error) {
         console.error('Falha ao gerar PDF do orçamento:', error);
         throw httpError(503, 'Não foi possível gerar o PDF do orçamento neste computador.');
@@ -510,13 +511,18 @@ const server = http.createServer(async (req, res) => {
       const id = asString(decodeURIComponent(url.pathname.slice('/print/orders/'.length)), 120);
       const row = db.prepare('SELECT data_json FROM cut_orders WHERE id=?').get(id);
       if (!row) return send(res, '<h1>Ordem não encontrada.</h1>', 404, 'text/html; charset=utf-8');
-      return send(res, generatePrintPage(normalizeOrder({ id, data_json: row.data_json })), 200, 'text/html; charset=utf-8');
+      return send(res, generatePrintPage(normalizeOrder({ id, data_json: row.data_json }), readCompanySettings()), 200, 'text/html; charset=utf-8');
     }
     if (url.pathname.startsWith('/print/quotes/') && req.method === 'GET') {
       const id = asString(decodeURIComponent(url.pathname.slice('/print/quotes/'.length)), 120);
       const row = db.prepare('SELECT data_json FROM quotes WHERE id=?').get(id);
       if (!row) return send(res, '<h1>Orçamento não encontrado.</h1>', 404, 'text/html; charset=utf-8');
-      return send(res, generateQuotePrint(normalizeQuote({ id, data_json: row.data_json })), 200, 'text/html; charset=utf-8');
+      const company = readCompanySettings();
+      const companyName = escapeHtml(company.tradeName || 'ORDEM DE CORTE');
+      const html = generateQuotePrint(normalizeQuote({ id, data_json: row.data_json }), company)
+        .replace('<strong>ORDEM DE CORTE</strong>', `<strong>${companyName}</strong>`)
+        .replace('<h1 class="title">Orçamento</h1>', `<h1 class="title">${companyName}</h1>`);
+      return send(res, html, 200, 'text/html; charset=utf-8');
     }
     const isUpload = url.pathname.startsWith('/uploads/');
     const root = isUpload ? UPLOADS : PUBLIC;

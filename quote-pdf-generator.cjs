@@ -12,8 +12,9 @@ function itemDescription(item) { const fields = [item.modelName && `Modelo: ${it
 function field(page, fonts, label, value, x, y, width, height) { page.drawRectangle({ x, y, width, height, borderColor: C.line, borderWidth: 1, color: C.white }); page.drawText(strip(label).toUpperCase(), { x: x + 7, y: y + height - 11, size: 6.3, font: fonts.bold, color: C.muted }); const fitted = fit(fonts.bold, value, width - 14, 9); page.drawText(fitted.text, { x: x + 7, y: y + 7, size: fitted.size, font: fonts.bold, color: C.ink }); }
 function tableCell(page, fonts, text, x, y, width, height, options = {}) { page.drawRectangle({ x, y, width, height, borderColor: C.soft, borderWidth: .7, color: options.header ? C.pale : C.white }); const lines = wrap(fonts[options.header ? 'bold' : 'regular'], text, width - 12, options.header ? 6.4 : 7.4, options.maxLines || 3); lines.forEach((line, index) => page.drawText(line, { x: options.align === 'right' ? x + width - 6 - fonts[options.header ? 'bold' : 'regular'].widthOfTextAtSize(line, options.header ? 6.4 : 7.4) : options.align === 'center' ? x + (width - fonts[options.header ? 'bold' : 'regular'].widthOfTextAtSize(line, options.header ? 6.4 : 7.4)) / 2 : x + 6, y: y + height - 12 - index * 9, size: options.header ? 6.4 : 7.4, font: fonts[options.header ? 'bold' : 'regular'], color: options.header ? C.muted : C.ink })); }
 
-async function generateQuotePdf(quote) {
+async function generateQuotePdf(quote, company = {}) {
   const document = await PDFDocument.create();
+  const companyName = String(company.tradeName || 'ORDEM DE CORTE').trim();
   const regular = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
   const fonts = { regular, bold };
@@ -27,7 +28,8 @@ async function generateQuotePdf(quote) {
     page.drawRectangle({ x: margin, y: 752, width: width - 120, height: 58, borderColor: C.line, borderWidth: 1.4, color: C.white });
     page.drawEllipse({ x: margin + 35, y: 781, xScale: 19, yScale: 19, color: C.navy });
     page.drawText('OC', { x: margin + 26, y: 776, size: 12, font: bold, color: C.white });
-    page.drawText('ORDEM DE CORTE', { x: margin + 67, y: 784, size: 16, font: bold, color: C.ink });
+    const companyTitle = fit(bold, companyName, 205, 16);
+    page.drawText(companyTitle.text, { x: margin + 67, y: 784, size: companyTitle.size, font: bold, color: C.ink });
     page.drawText('PROPOSTA COMERCIAL', { x: margin + 67, y: 771, size: 7, font: bold, color: C.muted });
     page.drawRectangle({ x: page.getWidth() - margin - 120, y: 752, width: 120, height: 58, borderColor: C.line, borderWidth: 1.4, color: C.white });
     page.drawText('ORCAMENTO', { x: page.getWidth() - margin - 91, y: 783, size: 10, font: bold, color: C.ink });
