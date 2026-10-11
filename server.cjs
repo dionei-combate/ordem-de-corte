@@ -523,16 +523,11 @@ const server = http.createServer(async (req, res) => {
       if (!row) return send(res, '<h1>Orçamento não encontrado.</h1>', 404, 'text/html; charset=utf-8');
       const quote = normalizeQuote({ id, data_json: row.data_json });
       const company = readCompanySettings();
-      const companyName = escapeHtml(company.tradeName || 'ORDEM DE CORTE');
       const companyImage = company.logoLightUrl || company.iconUrl;
       const icon = String(companyImage || '').startsWith('/uploads/') ? `<img class="mark company-icon" style="object-fit:contain;background:#fff;padding:2mm" src="${escapeHtml(companyImage)}" alt="">` : '<span class="mark">OC</span>';
-      const companyDetails = escapeHtml([company.legalName, company.cnpj, company.phone, company.email].filter(Boolean).join(' · '));
       const commercialDetails = escapeHtml([quote.paymentTerms && `Pagamento: ${quote.paymentTerms}`, quote.deliveryTime && `Entrega: ${quote.deliveryTime}`, quote.sellerName && `Vendedor: ${quote.sellerName}`].filter(Boolean).join(' · '));
       const html = generateQuotePrint(quote, company)
-        .replace('<strong>ORDEM DE CORTE</strong>', `<strong>${companyName}</strong>`)
         .replace('<span class="mark">OC</span>', icon)
-        .replace('<small>PROPOSTA COMERCIAL</small>', `<small>PROPOSTA COMERCIAL${companyDetails ? ` · ${companyDetails}` : ''}</small>`)
-        .replace('<h1 class="title">Orçamento</h1>', `<h1 class="title">${companyName}</h1>`)
         .replace('<div class="section-title">Itens do orçamento</div>', `${commercialDetails ? `<section class="client-grid"><div class="cell"><small>Condições comerciais</small><b>${commercialDetails}</b></div></section>` : ''}<div class="section-title">Itens do orçamento</div>`);
       return send(res, html, 200, 'text/html; charset=utf-8');
     }

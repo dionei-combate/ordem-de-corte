@@ -31,11 +31,14 @@ async function generateQuotePdf(quote, company = {}, uploads) {
     const page = document.addPage([595.28, 841.89]);
     page.drawRectangle({ x: margin, y: 752, width: width - 120, height: 58, borderColor: C.line, borderWidth: 1.4, color: C.white });
     if (!await drawCompanyIcon(document, page, company, uploads, margin + 16, 762, 38)) { page.drawEllipse({ x: margin + 35, y: 781, xScale: 19, yScale: 19, color: C.navy }); page.drawText('OC', { x: margin + 26, y: 776, size: 12, font: bold, color: C.white }); }
-    const companyTitle = fit(bold, companyName, 205, 16);
-    page.drawText(companyTitle.text, { x: margin + 67, y: 784, size: companyTitle.size, font: bold, color: C.ink });
-    page.drawText('PROPOSTA COMERCIAL', { x: margin + 67, y: 771, size: 7, font: bold, color: C.muted });
-    const companyDetails = [company.legalName, company.cnpj, company.phone, company.email].filter(Boolean).join(' · ');
-    if (companyDetails) page.drawText(fit(regular, companyDetails, 205, 5.8, 4.8).text, { x: margin + 67, y: 759, size: 5.8, font: regular, color: C.muted });
+    page.drawText('PROPOSTA COMERCIAL', { x: margin + 67, y: 793, size: 7, font: bold, color: C.muted });
+    const companyTitle = fit(bold, companyName, 205, 13.5, 9);
+    page.drawText(companyTitle.text, { x: margin + 67, y: 781, size: companyTitle.size, font: bold, color: C.ink });
+    const companyAddress = [company.street && `${company.street}${company.addressNumber ? `, ${company.addressNumber}` : ''}`, company.complement, company.neighborhood, [company.city, company.state].filter(Boolean).join(' - '), company.zip && `CEP ${company.zip}`].filter(Boolean).join(' · ');
+    const companyLegal = [company.legalName, company.cnpj && `CNPJ ${company.cnpj}`].filter(Boolean).join(' · ');
+    const companyContact = [company.phone, company.email, company.website].filter(Boolean).join(' · ');
+    const companyDetails = [companyLegal, companyAddress, companyContact].filter(Boolean).join(' · ');
+    if (companyDetails) page.drawText(fit(regular, companyDetails, 205, 5.2, 4.4).text, { x: margin + 67, y: 765, size: 5.2, font: regular, color: C.muted });
     page.drawRectangle({ x: page.getWidth() - margin - 120, y: 752, width: 120, height: 58, borderColor: C.line, borderWidth: 1.4, color: C.white });
     page.drawText('ORCAMENTO', { x: page.getWidth() - margin - 91, y: 783, size: 10, font: bold, color: C.ink });
     page.drawText(`No ${String(Number(quote.number) || 0).padStart(3, '0')}`, { x: page.getWidth() - margin - 73, y: 767, size: 10, font: bold, color: C.muted });

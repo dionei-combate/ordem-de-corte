@@ -65,6 +65,21 @@ html,body{max-width:100%;overflow-x:hidden}#app{width:100%;max-width:100vw;grid-
 .oc-reference .oc-paired-slot>span{color:#52657f;font-size:9px;font-weight:900;letter-spacing:.65px;white-space:nowrap}
 .oc-reference .oc-paired-slot input,.oc-reference .oc-paired-slot select{min-width:0;width:100%;border:0!important;background:transparent!important;padding:1mm!important;font:700 12px Arial,sans-serif!important;color:#172b4d!important;outline:none}
 .oc-reference .oc-size-item{flex-basis:16mm}
+
+/* Keep each size and quantity inside its own stable tile in the form and print. */
+.oc-reference .oc-production-box{height:auto!important;min-height:0!important;padding-bottom:16px!important}
+.oc-reference .oc-sizes{box-sizing:border-box;min-width:0;min-height:170px!important;padding:18px 18px 14px!important;align-items:flex-start!important;align-content:flex-start!important;overflow:auto!important}
+.oc-reference .oc-size-item{box-sizing:border-box;flex:0 0 78px!important;width:78px!important;min-width:78px;height:128px!important;min-height:128px!important;padding:10px 8px 8px!important;display:grid!important;grid-template-rows:56px 10px 30px!important;align-items:center!important;justify-items:center!important;overflow:visible}
+.oc-reference .oc-size-circle{box-sizing:border-box;width:56px!important;height:56px!important;min-width:56px;min-height:56px;display:grid!important;place-items:center!important;overflow:hidden}
+.oc-reference .oc-size-circle select,.oc-reference .oc-size-circle input{box-sizing:border-box;width:48px!important;height:28px!important;max-width:48px!important;min-height:28px!important;padding:0!important;line-height:28px!important;text-align:center!important}
+.oc-reference .oc-fraction-line{box-sizing:border-box;width:48px!important;height:2px;margin:0!important;align-self:center}
+.oc-reference .oc-size-item>.quantity{box-sizing:border-box;display:block!important;width:56px!important;height:30px!important;min-height:30px!important;max-width:56px!important;padding:0 4px!important;line-height:30px!important;border:1px solid #b9c8dc!important;border-radius:8px!important;background:#fff!important;text-align:center!important;overflow:hidden}
+.oc-reference .oc-size-item>strong{box-sizing:border-box;display:grid!important;place-items:center;width:56px!important;height:30px!important;padding:0!important;line-height:30px!important}
+.oc-reference .oc-remove{right:-7px;top:-7px}
+@media print{.print-body .oc-reference .oc-sizes{overflow:visible!important}.print-body .oc-reference .oc-size-item{break-inside:avoid}.print-body .oc-reference .oc-production-box{min-height:142mm!important}}
+@media(max-width:760px){.oc-reference .oc-sizes{justify-content:center!important;min-height:160px!important}.oc-reference .oc-size-zone{grid-template-columns:1fr}.oc-reference .oc-size-controls{grid-template-columns:46px 46px;justify-content:center}}
+.status-bar-row{grid-template-columns:minmax(105px,1fr) minmax(100px,2fr) 26px minmax(84px,auto)}.status-subtotal{color:#526173;font-size:10px;font-weight:800;text-align:right;white-space:nowrap}
+@media(max-width:560px){.status-bar-row{grid-template-columns:minmax(90px,1fr) minmax(70px,1.2fr) 22px;gap:7px}.status-subtotal{grid-column:1 / -1;text-align:left;margin-top:-5px;padding-left:2px}}
 .oc-reference .oc-size-circle{width:16mm!important;height:16mm!important;overflow:hidden}
 .oc-reference .oc-size-circle select,.oc-reference .oc-size-circle input{width:14mm!important;max-width:14mm!important;min-width:0!important;padding:0!important;text-align:center!important;font-size:9px!important;line-height:1!important;text-overflow:ellipsis}
 .oc-reference .oc-size-circle b{display:block;max-width:14mm;overflow:hidden;text-align:center;text-overflow:ellipsis;white-space:nowrap;font-size:9px!important;line-height:1}
