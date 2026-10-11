@@ -55,9 +55,19 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
     discount: 3
   }) });
   assert.equal(quote.response.status, 201);
-  assert.equal(quote.data.number, 1);
-  assert.equal(quote.data.subtotal, 31);
-  assert.equal(quote.data.total, 35);
+    assert.equal(quote.data.number, 1);
+    assert.equal(quote.data.shipping, 7);
+    assert.equal(quote.data.discount, 3);
+    assert.equal(quote.data.subtotal, 31);
+    assert.equal(quote.data.total, 35);
+    const updatedQuote = await json(`/api/quotes/${quote.data.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...quote.data, shipping: 12.5, discount: 4.5 }) });
+    assert.equal(updatedQuote.response.status, 200);
+    assert.equal(updatedQuote.data.shipping, 12.5);
+    assert.equal(updatedQuote.data.discount, 4.5);
+    assert.equal(updatedQuote.data.total, 39);
+    const listedQuotes = await json('/api/quotes');
+    assert.equal(listedQuotes.data[0].shipping, 12.5);
+    assert.equal(listedQuotes.data[0].discount, 4.5);
   const converted = await json(`/api/quotes/${quote.data.id}/convert`, { method: 'POST' });
   assert.equal(converted.response.status, 201);
   assert.equal(converted.data.orders.length, 1);

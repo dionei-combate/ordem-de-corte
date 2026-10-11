@@ -123,8 +123,10 @@ function cleanQuote(data) {
   const stringFields = ['clientId', 'clientName', 'clientDocument', 'clientPhone', 'clientEmail', 'clientAddress', 'clientNeighborhood', 'clientCity', 'clientState', 'clientZip', 'issueDate', 'validUntil', 'notes'];
   for (const field of stringFields) clean[field] = asString(data[field], field === 'notes' ? 5000 : 500);
   clean.status = QUOTE_STATUSES.has(data.status) ? data.status : 'Em elaboração';
-  clean.discount = Math.max(0, Number(data.discount) || 0);
-  clean.shipping = Math.max(0, Number(data.shipping) || 0);
+  const discountValue = data.discount ?? data.discountValue ?? 0;
+  const shippingValue = data.shipping ?? data.freight ?? data.shippingCost ?? 0;
+  clean.discount = Math.max(0, Number(discountValue) || 0);
+  clean.shipping = Math.max(0, Number(shippingValue) || 0);
   clean.items = Array.isArray(data.items) ? data.items.slice(0, 100).map(item => {
     const quantity = Math.max(0, Math.min(999999, Number(item?.quantity) || 0));
     const unitPrice = Math.max(0, Math.min(9999999, Number(item?.unitPrice) || 0));
