@@ -106,6 +106,30 @@ function safeImagePath(order, uploads) {
   return relation && !relation.startsWith('..') && !path.isAbsolute(relation) && fs.existsSync(candidate) ? candidate : null;
 }
 
+function safeCompanyIconPath(company, uploads) {
+  const icon = String(company.iconUrl || '');
+  if (!uploads || !icon.startsWith('/uploads/')) return null;
+  const candidate = path.resolve(uploads, icon.slice('/uploads/'.length));
+  const relation = path.relative(uploads, candidate);
+  return relation && !relation.startsWith('..') && !path.isAbsolute(relation) && fs.existsSync(candidate) ? candidate : null;
+}
+
+async function drawCompanyIcon(document, page, company, uploads, x, y, size) {
+  const iconPath = safeCompanyIconPath(company, uploads);
+  if (!iconPath) return false;
+  try {
+    const bytes = fs.readFileSync(iconPath);
+    const image = /\.png$/i.test(iconPath) ? await document.embedPng(bytes) : await document.embedJpg(bytes);
+    const scale = Math.min(size / image.width, size / image.height);
+    const width = image.width * scale;
+    const height = image.height * scale;
+    page.drawImage(image, { x: x + (size - width) / 2, y: y + (size - height) / 2, width, height });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function drawOrderImage(document, page, fonts, order, uploads, x, y, width, height) {
   page.drawRectangle({ x, y, width, height, borderColor: rgb(217 / 255, 227 / 255, 239 / 255), borderWidth: 0.8, color: C.white });
   const labelWidth = 126;
@@ -173,8 +197,7 @@ async function generateOrderPdf(order, uploads, company = {}) {
   const gap = 8;
 
   page.drawRectangle({ x: margin, y: 754, width: contentWidth - 125, height: 62, borderColor: C.line, borderWidth: 1.5, color: C.white });
-  page.drawEllipse({ x: margin + 39, y: 785, xScale: 20, yScale: 20, color: C.navy });
-  page.drawText('OC', { x: margin + 30, y: 780, size: 13, font: bold, color: C.white });
+  if (!await drawCompanyIcon(document, page, company, uploads, margin + 19, 765, 40)) { page.drawEllipse({ x: margin + 39, y: 785, xScale: 20, yScale: 20, color: C.navy }); page.drawText('OC', { x: margin + 30, y: 780, size: 13, font: bold, color: C.white }); }
   const companyTitle = fitText(bold, companyName, 205, 17, 8);
   page.drawText(companyTitle.text, { x: margin + 72, y: 787, size: companyTitle.size, font: bold, color: C.ink });
   page.drawText('CONTROLE DE PRODUCAO', { x: margin + 72, y: 773, size: 7.3, font: bold, color: C.muted });

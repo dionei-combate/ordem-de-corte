@@ -1,3 +1,5 @@
+const fs = require('node:fs');
+const path = require('node:path');
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 
 const C = { navy: rgb(36 / 255, 56 / 255, 97 / 255), ink: rgb(32 / 255, 36 / 255, 43 / 255), muted: rgb(64 / 255, 83 / 255, 113 / 255), line: rgb(89 / 255, 96 / 255, 108 / 255), soft: rgb(215 / 255, 222 / 255, 232 / 255), pale: rgb(238 / 255, 245 / 255, 1), white: rgb(1, 1, 1) };
@@ -7,12 +9,14 @@ const date = value => { if (!value) return '-'; const parts = String(value).spli
 const strip = value => clean(value);
 
 function fit(font, value, width, size = 8.5, min = 5.8) { let current = size; const text = strip(value).slice(0, 180); while (current > min && font.widthOfTextAtSize(text, current) > width) current -= .35; return { text, size: current }; }
+function safeIconPath(company, uploads) { const icon = String(company.iconUrl || ''); if (!uploads || !icon.startsWith('/uploads/')) return null; const candidate = path.resolve(uploads, icon.slice('/uploads/'.length)); const relation = path.relative(uploads, candidate); return relation && !relation.startsWith('..') && !path.isAbsolute(relation) && fs.existsSync(candidate) ? candidate : null; }
+async function drawCompanyIcon(document, page, company, uploads, x, y, size) { const iconPath = safeIconPath(company, uploads); if (!iconPath) return false; try { const bytes = fs.readFileSync(iconPath); const image = /\.png$/i.test(iconPath) ? await document.embedPng(bytes) : await document.embedJpg(bytes); const scale = Math.min(size / image.width, size / image.height); const width = image.width * scale, height = image.height * scale; page.drawImage(image, { x: x + (size - width) / 2, y: y + (size - height) / 2, width, height }); return true; } catch { return false; } }
 function wrap(font, value, width, size = 7.5, maxLines = 3) { const words = strip(value).split(/\s+/).filter(Boolean), lines = []; let line = ''; for (const word of words) { const next = line ? `${line} ${word}` : word; if (font.widthOfTextAtSize(next, size) <= width) line = next; else { if (line) lines.push(line); line = word; } } if (line) lines.push(line); return lines.slice(0, maxLines); }
 function itemDescription(item) { const fields = [item.modelName && `Modelo: ${item.modelName}`, item.materialName && `Tecido: ${item.materialName}`, item.colorName && `Cor: ${item.colorName}`, item.sleeveName && `Manga: ${item.sleeveName}${item.sleeveColorName ? ` (${item.sleeveColorName})` : ''}`, item.collarName && `Gola: ${item.collarName}${item.collarColorName ? ` (${item.collarColorName})` : ''}`, item.yokeName && `Pala: ${item.yokeName}${item.yokeColorName ? ` (${item.yokeColorName})` : ''}`, item.pocketName && `Bolsos: ${item.pocketName}`, item.printTypeName && `Impressao: ${item.printTypeName}`, item.detailName && `Detalhe: ${item.detailName}`].filter(Boolean); return { product: item.productName || 'Produto', details: fields.join(' · ') || 'Sem caracteristicas adicionais' }; }
 function field(page, fonts, label, value, x, y, width, height) { page.drawRectangle({ x, y, width, height, borderColor: C.line, borderWidth: 1, color: C.white }); page.drawText(strip(label).toUpperCase(), { x: x + 7, y: y + height - 11, size: 6.3, font: fonts.bold, color: C.muted }); const fitted = fit(fonts.bold, value, width - 14, 9); page.drawText(fitted.text, { x: x + 7, y: y + 7, size: fitted.size, font: fonts.bold, color: C.ink }); }
 function tableCell(page, fonts, text, x, y, width, height, options = {}) { page.drawRectangle({ x, y, width, height, borderColor: C.soft, borderWidth: .7, color: options.header ? C.pale : C.white }); const lines = wrap(fonts[options.header ? 'bold' : 'regular'], text, width - 12, options.header ? 6.4 : 7.4, options.maxLines || 3); lines.forEach((line, index) => page.drawText(line, { x: options.align === 'right' ? x + width - 6 - fonts[options.header ? 'bold' : 'regular'].widthOfTextAtSize(line, options.header ? 6.4 : 7.4) : options.align === 'center' ? x + (width - fonts[options.header ? 'bold' : 'regular'].widthOfTextAtSize(line, options.header ? 6.4 : 7.4)) / 2 : x + 6, y: y + height - 12 - index * 9, size: options.header ? 6.4 : 7.4, font: fonts[options.header ? 'bold' : 'regular'], color: options.header ? C.muted : C.ink })); }
 
-async function generateQuotePdf(quote, company = {}) {
+async function generateQuotePdf(quote, company = {}, uploads) {
   const document = await PDFDocument.create();
   const companyName = String(company.tradeName || 'ORDEM DE CORTE').trim();
   const regular = await document.embedFont(StandardFonts.Helvetica);
@@ -26,8 +30,7 @@ async function generateQuotePdf(quote, company = {}) {
   for (let pageIndex = 0; pageIndex < chunks.length; pageIndex += 1) {
     const page = document.addPage([595.28, 841.89]);
     page.drawRectangle({ x: margin, y: 752, width: width - 120, height: 58, borderColor: C.line, borderWidth: 1.4, color: C.white });
-    page.drawEllipse({ x: margin + 35, y: 781, xScale: 19, yScale: 19, color: C.navy });
-    page.drawText('OC', { x: margin + 26, y: 776, size: 12, font: bold, color: C.white });
+    if (!await drawCompanyIcon(document, page, company, uploads, margin + 16, 762, 38)) { page.drawEllipse({ x: margin + 35, y: 781, xScale: 19, yScale: 19, color: C.navy }); page.drawText('OC', { x: margin + 26, y: 776, size: 12, font: bold, color: C.white }); }
     const companyTitle = fit(bold, companyName, 205, 16);
     page.drawText(companyTitle.text, { x: margin + 67, y: 784, size: companyTitle.size, font: bold, color: C.ink });
     page.drawText('PROPOSTA COMERCIAL', { x: margin + 67, y: 771, size: 7, font: bold, color: C.muted });

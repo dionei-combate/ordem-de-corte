@@ -429,7 +429,7 @@ async function api(req, res, url) {
       const quote = normalizeQuote({ id, data_json: row.data_json });
       let pdf;
       try {
-        pdf = await generateQuotePdf(quote, readCompanySettings());
+        pdf = await generateQuotePdf(quote, readCompanySettings(), UPLOADS);
       } catch (error) {
         console.error('Falha ao gerar PDF do orçamento:', error);
         throw httpError(503, 'Não foi possível gerar o PDF do orçamento neste computador.');
@@ -511,7 +511,10 @@ const server = http.createServer(async (req, res) => {
       const id = asString(decodeURIComponent(url.pathname.slice('/print/orders/'.length)), 120);
       const row = db.prepare('SELECT data_json FROM cut_orders WHERE id=?').get(id);
       if (!row) return send(res, '<h1>Ordem não encontrada.</h1>', 404, 'text/html; charset=utf-8');
-      return send(res, generatePrintPage(normalizeOrder({ id, data_json: row.data_json }), readCompanySettings()), 200, 'text/html; charset=utf-8');
+      const company = readCompanySettings();
+      const icon = String(company.iconUrl || '').startsWith('/uploads/') ? `<img class="oc-mark company-icon" style="object-fit:contain;background:#fff;padding:2mm" src="${escapeHtml(company.iconUrl)}" alt="">` : '<span class="oc-mark">OC</span>';
+      const html = generatePrintPage(normalizeOrder({ id, data_json: row.data_json }), company).replace('<span class="oc-mark">OC</span>', icon);
+      return send(res, html, 200, 'text/html; charset=utf-8');
     }
     if (url.pathname.startsWith('/print/quotes/') && req.method === 'GET') {
       const id = asString(decodeURIComponent(url.pathname.slice('/print/quotes/'.length)), 120);
@@ -520,10 +523,12 @@ const server = http.createServer(async (req, res) => {
       const quote = normalizeQuote({ id, data_json: row.data_json });
       const company = readCompanySettings();
       const companyName = escapeHtml(company.tradeName || 'ORDEM DE CORTE');
+      const icon = String(company.iconUrl || '').startsWith('/uploads/') ? `<img class="mark company-icon" style="object-fit:contain;background:#fff;padding:2mm" src="${escapeHtml(company.iconUrl)}" alt="">` : '<span class="mark">OC</span>';
       const companyDetails = escapeHtml([company.legalName, company.cnpj, company.phone, company.email].filter(Boolean).join(' · '));
       const commercialDetails = escapeHtml([quote.paymentTerms && `Pagamento: ${quote.paymentTerms}`, quote.deliveryTime && `Entrega: ${quote.deliveryTime}`, quote.sellerName && `Vendedor: ${quote.sellerName}`].filter(Boolean).join(' · '));
       const html = generateQuotePrint(quote, company)
         .replace('<strong>ORDEM DE CORTE</strong>', `<strong>${companyName}</strong>`)
+        .replace('<span class="mark">OC</span>', icon)
         .replace('<small>PROPOSTA COMERCIAL</small>', `<small>PROPOSTA COMERCIAL${companyDetails ? ` · ${companyDetails}` : ''}</small>`)
         .replace('<h1 class="title">Orçamento</h1>', `<h1 class="title">${companyName}</h1>`)
         .replace('<div class="section-title">Itens do orçamento</div>', `${commercialDetails ? `<section class="client-grid"><div class="cell"><small>Condições comerciais</small><b>${commercialDetails}</b></div></section>` : ''}<div class="section-title">Itens do orçamento</div>`);
