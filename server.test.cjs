@@ -138,11 +138,17 @@ test('protege e preserva o banco durante o ciclo completo', { timeout: 20_000 },
   assert.match(printPage.headers.get('content-type'), /^text\/html/);
   assert.match(printHtml, /ORDEM DE CORTE/);
   assert.match(printHtml, /ORDEM DE CORTE/);
+  assert.match(printHtml, /O R D E M  D E   C O R T E/);
+  assert.doesNotMatch(printHtml, /CONTROLE DE PRODUÇÃO/);
   assert.match(printHtml, /Cliente de teste/);
   assert.match(printHtml, /Produto de teste/);
   assert.match(printHtml, /window\.print\(\)/);
   assert.doesNotMatch(printHtml, /microsoft-edge:/);
   assert.match(printHtml, /order-print-complete/);
+
+  const upload = await json('/api/upload', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' }) });
+  assert.equal(upload.response.status, 201);
+  assert.match(upload.data.url, /^\/uploads\/[a-f0-9-]+\.png$/);
 
   const missingUpdate = await json('/api/orders/inexistente', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(orderPayload) });
   assert.equal(missingUpdate.response.status, 404);

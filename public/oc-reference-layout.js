@@ -80,7 +80,7 @@
         const total=lines.reduce((s,x)=>s+x.quantity,0);
         const productSnapshot={...(product||{}),image:d.orderImage||product?.image||''};
         delete d.orderImage;
-        Object.assign(d,{status:d.status==='Impressa'?'Impressa':'Aberta',clientName:client?.name||'',productName:productLabel(product),modelId:'',modelName:d.modelName||'',colorName:color?.name||'',detailId:'',detailName:d.detailName||'',materialId:'',materialName:d.materialName||'',sleeveName:d.sleeveName||'',sleeveColorName:sleeveColor?.name||'',collarName:d.collarName||'',collarColorName:collarColor?.name||'',yokeName:d.yokeName||'',yokeColorName:yokeColor?.name||'',printTypeName:printType?.name||'',artName:'',pocketName:d.pocketName||'',workshopName:workshop?.name||'',productSnapshot,lines,total});
+        Object.assign(d,{status:orderStatus({status:d.status}),clientName:client?.name||'',productName:productLabel(product),modelId:'',modelName:d.modelName||'',colorName:color?.name||'',detailId:'',detailName:d.detailName||'',materialId:'',materialName:d.materialName||'',sleeveName:d.sleeveName||'',sleeveColorName:sleeveColor?.name||'',collarName:d.collarName||'',collarColorName:collarColor?.name||'',yokeName:d.yokeName||'',yokeColorName:yokeColor?.name||'',printTypeName:printType?.name||'',artName:'',pocketName:d.pocketName||'',workshopName:workshop?.name||'',productSnapshot,lines,total});
         await api(`/api/orders${id?'/'+id:''}`,{method:id?'PUT':'POST',body:JSON.stringify(d)});
         closeModal();
         state.view='orders';

@@ -60,17 +60,6 @@
   };
   window.printOrder=async function(id){
     const order=state.orders.find(x=>x.id===id);if(!order)return toast('Salve a ordem antes de imprimir.');
-    if(orderStatus(order)!=='Impressa'){
-      try{
-        const updated=await api(`/api/orders/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify({...order,status:'Impressa'})});
-        Object.assign(order,updated);
-        state.orders=state.orders.map(x=>x.id===id?updated:x);
-        const list=document.querySelector('#order-list');if(list)list.innerHTML=orderTable(filteredOrders());
-      }catch(error){
-        toast(error.message||'Não foi possível marcar a ordem como impressa.');
-        return;
-      }
-    }
     document.querySelector('#order-print-frame')?.remove();
     const frame=document.createElement('iframe');frame.id='order-print-frame';frame.title='Impressão da ordem de corte';frame.style.cssText='position:fixed;left:-300vw;top:0;width:210mm;height:297mm;border:0;';frame.src=`/print/orders/${encodeURIComponent(id)}?embedded=1&v=${encodeURIComponent(order.updatedAt||Date.now())}`;document.body.appendChild(frame);
     const cleanup=event=>{if(event.origin===location.origin&&event.data?.type==='order-print-complete'){frame.remove();window.removeEventListener('message',cleanup)}};window.addEventListener('message',cleanup);setTimeout(()=>{if(frame.isConnected){frame.remove();window.removeEventListener('message',cleanup)}},120000);

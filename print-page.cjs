@@ -128,7 +128,7 @@ body{margin:0;background:#e8edf4;color:#20242b;font-family:Arial,sans-serif}
 <body>
 <div class="toolbar"><div><strong>Ordem de Corte ${number}</strong><br><small>Documento ajustado para caber em uma folha A4.</small></div><button onclick="window.print()">Abrir impressão</button></div>
 <article class="order-document oc-reference">
-<header class="oc-header"><div class="oc-brand"><span class="oc-mark">OC</span><div><strong>${value(companyName)}</strong><small>CONTROLE DE PRODUÇÃO</small></div></div><div class="oc-title"><b>ORDEM</b><span>Nº ${number}</span></div></header>
+<header class="oc-header"><div class="oc-brand"><span class="oc-mark">OC</span><div><strong>${value(companyName)}</strong><small>O R D E M  D E   C O R T E</small></div></div><div class="oc-title"><b>ORDEM</b><span>Nº ${number}</span></div></header>
 <section class="oc-top-row">${field('DATA', formatDate(order.issueDate))}${field('ENTREGA', formatDate(order.deliveryDate))}${field('ORDEM DE COMPRA CLIENTE', order.purchaseOrder)}</section>
 <section class="oc-client-row">${field('CLIENTE', order.clientName)}${field('FACÇÃO', order.workshopName)}</section>
 <section class="oc-production-box">

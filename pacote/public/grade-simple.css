@@ -1,0 +1,10 @@
+.simple-grade{max-width:620px}
+.simple-grade .grade-row{display:grid;grid-template-columns:1fr 1.4fr 42px}
+.simple-grade .grade-row>*{min-height:42px}
+.simple-grade .grade-row.head{padding:0}
+.simple-grade .grade-row.head b{display:flex;align-items:center;padding:0 12px;text-align:left}
+.simple-grade .quantity{text-align:center;font-weight:800;font-size:16px}
+.simple-grade .size{text-align:left;padding-left:14px}
+.grade-total{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#202a44;color:#fff}
+.grade-total span{font-size:11px;font-weight:800;letter-spacing:1px}
+.grade-total strong{font-size:24px;color:#dda086}
