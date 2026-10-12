@@ -1,10 +1,16 @@
 ORDEM DE CORTE - INSTALADOR LOCAL
 
-Para instalar em um novo computador:
-1. Copie esta pasta completa para o computador.
-2. Execute "Instalar Ordem de Corte.cmd".
-3. Autorize a instalação quando o Windows pedir permissão.
-4. Use o atalho "Ordem de Corte" criado na Área de Trabalho ou no Menu Iniciar.
+INSTALAÇÃO DE UM CLIQUE:
+1. Execute "Ordem-de-Corte-Instalador.exe".
+2. Autorize a instalação quando o Windows pedir permissão.
+3. O sistema será instalado, iniciado e terá seus atalhos criados automaticamente.
+
+O instalador remove a versão anterior e os dados antigos antes da instalação.
+Use-o somente quando quiser iniciar uma instalação totalmente zerada.
+
+Alternativa técnica:
+1. Execute "Instalar Ordem de Corte.cmd".
+2. Autorize a instalação quando o Windows pedir permissão.
 
 O sistema é instalado em:
 C:\Program Files\Ordem de Corte

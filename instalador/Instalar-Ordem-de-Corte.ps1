@@ -25,6 +25,21 @@ $DataDir = Join-Path $env:ProgramData 'Ordem de Corte\dados'
 $Desktop = [Environment]::GetFolderPath('CommonDesktopDirectory')
 $Programs = [Environment]::GetFolderPath('CommonPrograms')
 $StartMenuDir = Join-Path $Programs 'Ordem de Corte'
+$DesktopLink = Join-Path $Desktop 'Ordem de Corte.lnk'
+
+# Reinstalação limpa: encerra o servidor anterior e remove instalação, atalhos e dados.
+$OldInstallDir = $InstallDir
+$oldProcesses = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+  $_.CommandLine -and $_.CommandLine -like "*$OldInstallDir*"
+}
+foreach ($oldProcess in $oldProcesses) {
+  Stop-Process -Id $oldProcess.ProcessId -Force -ErrorAction SilentlyContinue
+}
+Start-Sleep -Milliseconds 300
+Remove-Item -LiteralPath $DesktopLink -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $StartMenuDir -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $InstallDir -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath (Split-Path $DataDir -Parent) -Recurse -Force -ErrorAction SilentlyContinue
 
 if (-not (Test-Path $Payload)) {
   throw "A pasta pacote não foi encontrada. Mantenha o instalador junto com a pasta pacote."
@@ -71,7 +86,6 @@ Set-Content -LiteralPath $Uninstall -Encoding UTF8 -Value $UninstallText
 
 $Exe = Join-Path $InstallDir 'Ordem de Corte.exe'
 $Icon = Join-Path $InstallDir 'ordem-de-corte.ico'
-$DesktopLink = Join-Path $Desktop 'Ordem de Corte.lnk'
 $StartLink = Join-Path $StartMenuDir 'Ordem de Corte.lnk'
 $UninstallLink = Join-Path $StartMenuDir 'Desinstalar Ordem de Corte.lnk'
 
